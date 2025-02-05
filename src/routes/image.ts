@@ -5,6 +5,7 @@ import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysi
 import { resizeImage } from "../utils/resizeImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgpt } from "@/services/ai/chatgpt";
+import { BaseResponse } from "serpapi";
 
 const router = express.Router();
 
@@ -61,10 +62,10 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
 });
 
 router.get("/test", async (_req: Request, res: Response) => {
-    const response = await serpapi();
-    const chatgptResponse = await chatgpt(response);
-    console.log(chatgptResponse);
-    return res.json(chatgptResponse);
+  const response: BaseResponse = await serpapi();
+  const chatgptResponse = await chatgpt(response);
+  console.log(chatgptResponse);
+  return res.json(chatgptResponse);
 });
 
 export default router;
