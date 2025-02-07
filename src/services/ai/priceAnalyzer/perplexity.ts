@@ -51,6 +51,41 @@ async function perplexityPrizeAnalyse(furnitureDetails: FurnitureDetails) {
   return result.text;
 }
 
+// Jos brändi ei tiedossa
+async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: FurnitureDetails) {
+  const result = await generateText({
+    model: perplexity("sonar"),
+    prompt: `
+      Arvioi huonekalun markkinahinta käytettyjen tavaroiden markkinoilla Suomessa perustuen seuraaviin ominaisuuksiin:
+      
+      - Väri: ${furnitureDetails.vari} (Esim. neutraalit värit kuten musta, harmaa ja valkoinen ovat usein kysytympiä.)
+      - Mitat: ${furnitureDetails.mitat.pituus}x${furnitureDetails.mitat.leveys}x${furnitureDetails.mitat.korkeus} cm (Suuremmat huonekalut voivat olla vaikeampia myydä.)
+      - Materiaalit: ${furnitureDetails.materiaalit.join(", ")} (Massiivipuu ja metalli ovat arvokkaampia kuin lastulevy.)
+      - Kunto: ${furnitureDetails.kunto} (Uudenveroinen ja hyväkuntoinen huonekalu on arvokkaampi.)
+      
+      Ota huomioon seuraavat arviointikriteerit:
+      1. Väri:
+         - Neutraalit värit (musta, harmaa, valkoinen) ovat kysytympiä.
+         - Kirkkaat tai epätavalliset värit voivat rajoittaa ostajakuntaa.
+      2. Mitat:
+         - Suuret huonekalut voivat olla vaikeampia myydä kuljetushaasteiden vuoksi.
+         - Kompaktit ja modulaariset mallit ovat kysytympiä pienissä asunnoissa.
+      3. Materiaalit:
+         - Massiivipuu ja metalli ovat arvostetumpia kuin lastulevy ja muovi.
+         - Kestävä ja helppohoitoinen materiaali lisää arvoa.
+      4. Kunto:
+         - Uudenveroinen tuote voi saavuttaa lähes uuden hinnan.
+         - Pienet viat voivat vähentää arvoa 10–30 %.
+         - Kulunut tai rikkinäinen huonekalu voi olla vaikea myydä ilman kunnostusta.
+      
+      Arvioi tuotteen hinta perustuen näihin tekijöihin ja anna perusteltu arvio euroina.
+    `,
+    temperature: 0,
+  });
+
+  return result.text;
+}
+
 async function generatePriceObject(
   furnitureDetails: FurnitureDetails,
   perplexityAnalysis: string,
@@ -94,7 +129,11 @@ export const analyzePrice = async (
   furnitureDetails: FurnitureDetails,
 ): Promise<PriceEstimation> => {
   try {
-    const perplexityAnalysis = await perplexityPrizeAnalyse(furnitureDetails);
+    const perplexityAnalysis =
+        furnitureDetails.merkki === "Ei tiedossa"
+          ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
+          
+          : await perplexityPrizeAnalyse(furnitureDetails);
     
     const result = await generatePriceObject(
       furnitureDetails,
