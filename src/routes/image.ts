@@ -4,6 +4,10 @@ import { finalAnalyze } from "../services/ai/generate-objects";
 import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 import { resizeImage } from "../utils/resizeImage";
 import Image from "@/models/imageSchema";
+import { BaseResponse } from "serpapi";
+import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
+import { chatgpt } from "@/services/ai/chatgpt";
+import Evaluation from "@/models/evaluation";
 //import fs from "fs";
 
 const router = express.Router();
@@ -83,6 +87,40 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   }
 });
 */
+
+// For testing serpApi:
+router.get("/test", async (_req: Request, res: Response) => {
+  const response: BaseResponse = await serpapi();
+  const chatgptResponse = await chatgpt(response);
+  return res.json(chatgptResponse);
+});
+
+// For testing adding evaluation object database:
+router.post(
+  "/test",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const optimizedImage = await resizeImage(req.file.buffer);
+
+      const imageForEvaluation = new Evaluation({
+        image: optimizedImage.buffer,
+      });
+
+      const evaResult = await imageForEvaluation.save();
+      return res.status(200).json(evaResult);
+    } catch (error) {
+      console.error("Pipeline error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Analysis pipeline failed";
+      throw new Error(errorMessage);
+    }
+  }
+);
 
 router.get("/:id", async (req: Request, res: Response) => {
   try {
