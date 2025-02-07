@@ -6,6 +6,7 @@ import { resizeImage } from "../utils/resizeImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgpt } from "@/services/ai/chatgpt";
 import { BaseResponse } from "serpapi";
+import Evaluation from "@/models/evaluation";
 
 const router = express.Router();
 
@@ -66,6 +67,31 @@ router.get("/test", async (_req: Request, res: Response) => {
   const chatgptResponse = await chatgpt(response);
   console.log(chatgptResponse);
   return res.json(chatgptResponse);
+});
+
+router.post("/test", imageUploadHandler(), async (req: Request, res: Response) => {
+  try{
+
+    if (!req.file || !req.file.buffer) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+  
+    const optimizedImage = await resizeImage(req.file.buffer);
+
+    const imageForEvaluation = new Evaluation ({
+      image: optimizedImage.buffer
+    })
+
+    const evaResult = await imageForEvaluation.save();
+    console.log(evaResult.id)
+    return res.status(200).json(evaResult);
+
+  } catch (error) {
+    console.error("Pipeline error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Analysis pipeline failed";
+    throw new Error(errorMessage);
+  }
 });
 
 export default router;

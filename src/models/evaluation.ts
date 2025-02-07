@@ -12,11 +12,6 @@ export const kuntoOptions = [
   ] as const;
 
 const evaluationSchema = new Schema ({
-    evaluation_id: {  
-        type: String,
-        required: true,
-        unique: true,
-    },
     image: {
         type: Buffer,
         required: true,
@@ -70,6 +65,14 @@ const evaluationSchema = new Schema ({
             default: "Ei tiedossa"  // Oletusarvo, jos ei anneta arvoa
         },
     },
+});
+
+evaluationSchema.set('toJSON', {
+    transform: (_document, returnedObject) => {
+        returnedObject.id = returnedObject._id.toString()
+        delete returnedObject._id
+        delete returnedObject.__v
+    }
 });
 
 const Evaluation = mongoose.model("Evaluation", evaluationSchema);
