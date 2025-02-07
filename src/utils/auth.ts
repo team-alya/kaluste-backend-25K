@@ -10,7 +10,4 @@ export function tokenGenerator(username: string) {
     )
 }
 
-export function verifyToken(token: string) {
-    return jwt.verify(token, config.jwtSecret)
-}
 
