@@ -16,6 +16,14 @@ const evaluationSchema = new Schema ({
         type: Buffer,
         required: true,
     },
+    contentType: {
+        type: String,
+        required: true,
+      },
+    timeStamp: { 
+        type: Date, 
+        default: Date.now 
+    },
     evaluation: {
         brand: {
             type: String,
@@ -77,3 +85,4 @@ evaluationSchema.set('toJSON', {
 
 const Evaluation = mongoose.model("Evaluation", evaluationSchema);
 export default Evaluation;
+

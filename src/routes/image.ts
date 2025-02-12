@@ -3,7 +3,6 @@ import { imageUploadHandler } from "../middleware/middleware";
 import { finalAnalyze } from "../services/ai/generate-objects";
 import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 import { resizeImage } from "../utils/resizeImage";
-import Image from "@/models/imageSchema";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgpt } from "@/services/ai/chatgpt";
@@ -43,8 +42,7 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
         requestId: crypto.randomUUID(),
       };
 
-      const newImage = new Image({
-        filename: `${responseData.requestId}-image`,
+      const newImage = new Evaluation({
         contentType: req.file.mimetype,
         image: optimizedImage.buffer,
       });
@@ -109,6 +107,7 @@ router.post(
 
       const imageForEvaluation = new Evaluation({
         image: optimizedImage.buffer,
+        contentType: req.file.mimetype,
       });
 
       const evaResult = await imageForEvaluation.save();
@@ -124,16 +123,14 @@ router.post(
 
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const image = await Image.findById(req.params.id);
+    const image = await Evaluation.findById(req.params.id);
     if (!image) {
       return res.status(404).json({ error: "Image not found" });
     }
-
-    // Asetetaan Content-Type otsikko
+    
     res.setHeader("Content-Type", image.contentType);
-
-    // Lähetetään kuva vastauksena
     return res.send(image.image);
+
   } catch (error) {
     console.error("Error fetching image:", error);
     return res.status(500).json({ error: "Error fetching image" });
