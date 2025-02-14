@@ -4,6 +4,8 @@ import imageRouter from "./image";
 import locationRouter from "./webchat";
 import priceRouter from "./price";
 import reviewRouter from "./review";
+import loginRouter from "./login";
+import registerRouter from "./register";
 
 const router = Router();
 
@@ -16,5 +18,7 @@ router.use("/price", priceRouter);
 router.use("/chat", chatRouter);
 router.use("/webchat", locationRouter);
 router.use("/review", reviewRouter);
+router.use("/register", registerRouter);
+router.use("/login", loginRouter);
 
 export default router;

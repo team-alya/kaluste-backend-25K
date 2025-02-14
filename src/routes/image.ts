@@ -3,6 +3,11 @@ import { imageUploadHandler } from "../middleware/middleware";
 import { finalAnalyze } from "../services/ai/generate-objects";
 import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 import { resizeImage } from "../utils/resizeImage";
+import { BaseResponse } from "serpapi";
+import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
+import { chatgpt } from "@/services/ai/chatgpt";
+import Evaluation from "@/models/evaluation";
+//import fs from "fs";
 
 const router = express.Router();
 
@@ -11,11 +16,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({ error: "No image file provided" });
     }
-    // const mockResponseData = {
-    //   ...getMockFurnitureData(),
-    //   requestId: crypto.randomUUID(),
-    // };
-    // return res.status(200).json(mockResponseData);
 
     const optimizedImage = await resizeImage(req.file.buffer);
 
@@ -41,6 +41,15 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
         ...furnitureData,
         requestId: crypto.randomUUID(),
       };
+
+      const newImage = new Evaluation({
+        contentType: req.file.mimetype,
+        image: optimizedImage.buffer,
+      });
+
+      const savedImage = await newImage.save();
+      console.log("Image saved to database with ID:", savedImage._id);
+
       console.log("returning response data");
 
       return res.status(200).json(responseData);
@@ -58,4 +67,86 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   }
 });
 
+/*router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const image = await Image.findById(req.params.id);
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    
+    // Tallennetaan kuva tiedostoon
+    fs.writeFileSync(`./${image.filename}.jpeg`, image.image);
+
+    return res.status(200).json({ message: "Image saved to file" });
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return res.status(500).json({ error: "Error fetching image" });
+  }
+});
+*/
+
+// For testing serpApi:
+router.get("/test", async (_req: Request, res: Response) => {
+  const response: BaseResponse = await serpapi();
+  const chatgptResponse = await chatgpt(response);
+  return res.json(chatgptResponse);
+});
+
+// For testing adding evaluation object database:
+router.post(
+  "/test",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const optimizedImage = await resizeImage(req.file.buffer);
+
+      const imageForEvaluation = new Evaluation({
+        image: optimizedImage.buffer,
+        contentType: req.file.mimetype,
+      });
+
+      const evaResult = await imageForEvaluation.save();
+      return res.status(200).json(evaResult);
+    } catch (error) {
+      console.error("Pipeline error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Analysis pipeline failed";
+      throw new Error(errorMessage);
+    }
+  }
+);
+
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const image = await Evaluation.findById(req.params.id);
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+    
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return res.status(500).json({ error: "Error fetching image" });
+  }
+});
+
 export default router;
+
+/*
+[
+  {
+    id:23423423,
+    image: {kuvabufferi},
+    arvio: {
+      malli:null,
+      merkki:null,
+    }
+  }
+*/

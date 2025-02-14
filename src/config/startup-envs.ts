@@ -11,6 +11,7 @@ interface Config {
     google: string;
     perplexity: string;
   };
+  jwtSecret: string;
 }
 
 const getConfig = (): Config => {
@@ -25,6 +26,7 @@ const getConfig = (): Config => {
       google: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
       perplexity: process.env.PERPLEXITY_API_KEY || "",
     },
+    jwtSecret: process.env.JWT_SECRET || "",
   };
 
   const required = [
