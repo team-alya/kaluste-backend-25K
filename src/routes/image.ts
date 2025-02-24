@@ -42,6 +42,29 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
         requestId: crypto.randomUUID(),
       };
 
+      const newEvaluation = new Evaluation({
+        contentType: req.file.mimetype,
+        image: optimizedImage.buffer,
+        evaluation: {
+          brand: furnitureData.merkki || "Ei tiedossa",
+          model: furnitureData.malli || "Ei tiedossa",
+          color: furnitureData.vari || "Ei tiedossa",
+          dimensions: {
+            length: furnitureData.mitat?.pituus || 0,
+            width: furnitureData.mitat?.leveys || 0,
+            height: furnitureData.mitat?.korkeus || 0,
+          },
+          materials: furnitureData.materiaalit?.map((mat: string) => ({ material: mat })) || [],
+          condition: furnitureData.kunto || "Ei tiedossa",
+        },
+      });
+
+      const savedEvaluation = await newEvaluation.save();
+      const checkImage = await Evaluation.findById(savedEvaluation._id);
+      console.log("Saved image buffer size:", checkImage?.image.length);
+      
+
+      /*
       const newImage = new Evaluation({
         contentType: req.file.mimetype,
         image: optimizedImage.buffer,
@@ -49,6 +72,8 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
 
       const savedImage = await newImage.save();
       console.log("Image saved to database with ID:", savedImage._id);
+
+      */
 
       console.log("returning response data");
 
@@ -121,15 +146,49 @@ router.post(
   }
 );
 
+//Find all evaluations
+router.get("/all", async (_req, res: Response) => {
+  try {
+    const evaluations = await Evaluation.find();
+
+    const formattedEvaluations = evaluations.map((evaluation) => ({
+      id: evaluation._id,
+      contentType: evaluation.contentType,
+      timeStamp: evaluation.timeStamp,
+      evaluation: evaluation.evaluation,
+      image: evaluation.image instanceof Buffer
+        ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
+        : null,
+    }));
+
+    return res.json(formattedEvaluations);
+  } catch (error) {
+    console.error("Error fetching evaluations:", error);
+    return res.status(500).json({ error: "Error fetching evaluations" });
+  }
+});
+
+// Find evaluation data by id
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const image = await Evaluation.findById(req.params.id);
-    if (!image) {
-      return res.status(404).json({ error: "Image not found" });
+    const evaluation = await Evaluation.findById(req.params.id);
+    if (!evaluation) {
+      return res.status(404).json({ error: "Evaluation not found" });
+    }
+
+    let base64Image = null;
+    if (evaluation.image && evaluation.image.buffer) {
+      base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
     }
     
-    res.setHeader("Content-Type", image.contentType);
-    return res.send(image.image);
+    return res.json({
+      id: evaluation._id,
+      contentType: evaluation.contentType,
+      timeStamp: evaluation.timeStamp,
+      evaluation: evaluation.evaluation, 
+      image: base64Image, 
+    });
+
 
   } catch (error) {
     console.error("Error fetching image:", error);
@@ -137,7 +196,9 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
+
 export default router;
+
 
 /*
 [
