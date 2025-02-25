@@ -138,7 +138,8 @@ router.post(
 
         const finalEvaVersion = await Evaluation.findByIdAndUpdate(
           savedFirstEvaluation.id,
-          updatedEvaluation
+          updatedEvaluation,
+          { new: true }
         );
 
         return res.json(finalEvaVersion);
