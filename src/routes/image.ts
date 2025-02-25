@@ -39,7 +39,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
 
       const responseData = {
         ...furnitureData,
-        requestId: crypto.randomUUID(),
       };
 
       const newEvaluation = new Evaluation({
@@ -54,7 +53,10 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
             width: furnitureData.mitat?.leveys || 0,
             height: furnitureData.mitat?.korkeus || 0,
           },
-          materials: furnitureData.materiaalit?.map((mat: string) => ({ material: mat })) || [],
+          materials:
+            furnitureData.materiaalit?.map((mat: string) => ({
+              material: mat,
+            })) || [],
           condition: furnitureData.kunto || "Ei tiedossa",
         },
       });
@@ -62,19 +64,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
       const savedEvaluation = await newEvaluation.save();
       const checkImage = await Evaluation.findById(savedEvaluation._id);
       console.log("Saved image buffer size:", checkImage?.image.length);
-      
-
-      /*
-      const newImage = new Evaluation({
-        contentType: req.file.mimetype,
-        image: optimizedImage.buffer,
-      });
-
-      const savedImage = await newImage.save();
-      console.log("Image saved to database with ID:", savedImage._id);
-
-      */
-
       console.log("returning response data");
 
       return res.status(200).json(responseData);
@@ -92,61 +81,83 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   }
 });
 
-/*router.get("/:id", async (req: Request, res: Response) => {
-  try {
-    const image = await Image.findById(req.params.id);
-    if (!image) {
-      return res.status(404).json({ error: "Image not found" });
-    }
-
-    
-    // Tallennetaan kuva tiedostoon
-    fs.writeFileSync(`./${image.filename}.jpeg`, image.image);
-
-    return res.status(200).json({ message: "Image saved to file" });
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return res.status(500).json({ error: "Error fetching image" });
-  }
-});
-*/
-
-// For testing serpApi:
+/*
 router.get("/test", async (_req: Request, res: Response) => {
   const response: BaseResponse = await serpapi();
   const chatgptResponse = await chatgpt(response);
   return res.json(chatgptResponse);
 });
+*/
 
-// For testing adding evaluation object database:
+// For testing serpApi:
 router.post(
-  "/test",
+  "/imagetest",
   imageUploadHandler(),
   async (req: Request, res: Response) => {
     try {
       if (!req.file || !req.file.buffer) {
         return res.status(400).json({ error: "No image file provided" });
       }
-
       const optimizedImage = await resizeImage(req.file.buffer);
 
-      const imageForEvaluation = new Evaluation({
-        image: optimizedImage.buffer,
-        contentType: req.file.mimetype,
-      });
+      try {
+        console.log("trying to save img");
 
-      const evaResult = await imageForEvaluation.save();
-      return res.status(200).json(evaResult);
+        const firstEvaVersion = new Evaluation({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedFirstEvaluation = await firstEvaVersion.save();
+        console.log(
+          "saving was successfull. Evaluation id:" + savedFirstEvaluation.id
+        );
+        console.log("pass the id to serpapi");
+
+        const serpApiResponse: BaseResponse = await serpapi(
+          savedFirstEvaluation.id
+        );
+        const chatgptResponse = await chatgpt(serpApiResponse);
+        console.log(chatgptResponse);
+
+        const updatedEvaluation = {
+          ...savedFirstEvaluation.toObject(),
+          evaluation: {
+            brand: chatgptResponse.merkki,
+            model: chatgptResponse.malli,
+            color: "Ei tiedossa",
+            dimensions: {
+              length: 0,
+              width: 0,
+              height: 0,
+            },
+            materials: [],
+            condition: "Ei tiedossa",
+          },
+        };
+
+        const finalEvaVersion = await Evaluation.findByIdAndUpdate(
+          savedFirstEvaluation.id,
+          updatedEvaluation
+        );
+
+        return res.json(finalEvaVersion);
+      } catch (error) {
+        console.error("Pipeline error:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Analysis pipeline failed";
+        throw new Error(errorMessage);
+      }
     } catch (error) {
-      console.error("Pipeline error:", error);
+      console.error("Server error:", error);
       const errorMessage =
-        error instanceof Error ? error.message : "Analysis pipeline failed";
-      throw new Error(errorMessage);
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      return res.status(500).json({ error: errorMessage });
     }
   }
 );
 
-//Find all evaluations
+// Find all evaluations
 router.get("/all", async (_req, res: Response) => {
   try {
     const evaluations = await Evaluation.find();
@@ -156,9 +167,10 @@ router.get("/all", async (_req, res: Response) => {
       contentType: evaluation.contentType,
       timeStamp: evaluation.timeStamp,
       evaluation: evaluation.evaluation,
-      image: evaluation.image instanceof Buffer
-        ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
-        : null,
+      image:
+        evaluation.image instanceof Buffer
+          ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
+          : null,
     }));
 
     return res.json(formattedEvaluations);
@@ -169,7 +181,7 @@ router.get("/all", async (_req, res: Response) => {
 });
 
 // Find evaluation data by id
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/eva/:id", async (req: Request, res: Response) => {
   try {
     const evaluation = await Evaluation.findById(req.params.id);
     if (!evaluation) {
@@ -180,34 +192,34 @@ router.get("/:id", async (req: Request, res: Response) => {
     if (evaluation.image && evaluation.image.buffer) {
       base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
     }
-    
+
     return res.json({
       id: evaluation._id,
       contentType: evaluation.contentType,
       timeStamp: evaluation.timeStamp,
-      evaluation: evaluation.evaluation, 
-      image: base64Image, 
+      evaluation: evaluation.evaluation,
+      image: base64Image,
     });
-
-
   } catch (error) {
     console.error("Error fetching image:", error);
     return res.status(500).json({ error: "Error fetching image" });
   }
 });
 
+// Find evaluation image by id
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const image = await Evaluation.findById(req.params.id);
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return res.status(500).json({ error: "Error fetching image" });
+  }
+});
 
 export default router;
-
-
-/*
-[
-  {
-    id:23423423,
-    image: {kuvabufferi},
-    arvio: {
-      malli:null,
-      merkki:null,
-    }
-  }
-*/
