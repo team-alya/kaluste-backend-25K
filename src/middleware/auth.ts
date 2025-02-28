@@ -1,26 +1,36 @@
-import jwt from 'jsonwebtoken';
+import jwt, { TokenExpiredError } from 'jsonwebtoken';
 import config from "../config/startup-envs";
 import { NextFunction, Request, Response } from 'express';
-import User from '@/models/user';
+import User from '@/middleware/models/user';
+import { CustomError } from '@/types/customError';
 
-export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
+export const verifyToken = async (req: Request, _res: Response, next: NextFunction) => {
     try {
         const token = req.header("Authorization")?.split(" ")[1];
 
         if (!token) {
-            return res.status(401).json({ message: "No token provided" });
+            throw new CustomError("No token provided", 401);
         }
 
-        const decoded = jwt.verify(token, config.jwtSecret) as { username: string };
+        let decoded;
+        try {
+            decoded = jwt.verify(token, config.jwtSecret) as { username: string };
+        } catch (error) {
+            if (error instanceof TokenExpiredError) {
+                throw new CustomError("Token expired", 401);
+            }
+            throw new CustomError("Invalid token", 401);
+        }
+
         const user = await User.findOne({ username: decoded.username })
 
         if (!user) {
-            return res.status(401).json({ message: "Invalid token, user not found" });
+            throw new CustomError("User not found, token is invalid", 401);
         }
 
-        return next();
+        next();
 
     } catch (error) {
-        return res.status(401).json({ message: "Token is not valid" });
+        next(error);
     }
 }

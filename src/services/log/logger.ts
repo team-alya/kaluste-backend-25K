@@ -1,4 +1,4 @@
-import Log from "@/models/log";
+import Log from "@/middleware/models/log";
 import { loggerResponse, ReviewQuery } from "../../types/middleware";
 
 /**
