@@ -6,7 +6,7 @@ import { loggerResponse, ReviewQuery } from "../../types/middleware";
  */
 const chatLogger = async (
   request_id: string,
-  conversation: { role: string; content: string },
+  conversation: { role: string; content: string }
 ) => {
   try {
     let log = await Log.findOne({ request_id });
@@ -28,7 +28,7 @@ const chatLogger = async (
  */
 const reviewLogger = async (
   request_id: string,
-  review: ReviewQuery["body"]["review"],
+  review: ReviewQuery["body"]["review"]
 ): Promise<loggerResponse | { error: string; status: number }> => {
   try {
     const log = await Log.findOne({ request_id });
