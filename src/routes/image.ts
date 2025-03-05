@@ -5,7 +5,10 @@ import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysi
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import { chatgpt } from "@/services/ai/chatgpt";
+import {
+  chatgptForBrandAndModel,
+  chatgptRestOfAnalysis,
+} from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
 //import fs from "fs";
@@ -118,23 +121,29 @@ router.post(
             }))
             .slice(0, 10);
 
-        const chatgptResponse = await chatgpt(trimmedSerpApiResponse);
-        console.log(chatgptResponse);
-        console.log("Positions used: " + trimmedSerpApiResponse.length);
+        const chatgptResponse = await chatgptForBrandAndModel(
+          trimmedSerpApiResponse
+        );
         console.log(trimmedSerpApiResponse);
+
+        console.log("Start rest of analysis");
+        const restGptAnalysis = await chatgptRestOfAnalysis(
+          optimizedImage.buffer
+        );
+        console.log(restGptAnalysis);
 
         const updatedEvaluation = {
           evaluation: {
-            brand: chatgptResponse.merkki,
-            model: chatgptResponse.malli,
-            color: "Ei tiedossa",
+            brand: chatgptResponse.merkki || "Ei tiedossa",
+            model: chatgptResponse.malli || "Ei tiedossa",
+            color: restGptAnalysis.vari || "Ei tiedossa",
             dimensions: {
-              length: 0,
-              width: 0,
-              height: 0,
+              length: restGptAnalysis.mitat.pituus || 0,
+              width: restGptAnalysis.mitat.leveys || 0,
+              height: restGptAnalysis.mitat.korkeus || 0,
             },
-            materials: [],
-            condition: "Ei tiedossa",
+            materials: restGptAnalysis.materiaalit || [],
+            condition: restGptAnalysis.kunto || "Ei tiedossa",
           },
         };
 
