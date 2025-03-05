@@ -82,6 +82,11 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   }
 });
 
+interface VisualMatch {
+  position: string;
+  title: string;
+}
+
 router.post(
   "/imagetest",
   imageUploadHandler(),
@@ -104,8 +109,19 @@ router.post(
         console.log("saved image id: " + savedImage.id);
 
         const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
-        const chatgptResponse = await chatgpt(serpApiResponse);
+
+        const trimmedSerpApiResponse: VisualMatch[] =
+          serpApiResponse.visual_matches
+            .map((match: VisualMatch) => ({
+              position: match.position,
+              title: match.title,
+            }))
+            .slice(0, 10);
+
+        const chatgptResponse = await chatgpt(trimmedSerpApiResponse);
         console.log(chatgptResponse);
+        console.log("Positions used: " + trimmedSerpApiResponse.length);
+        console.log(trimmedSerpApiResponse);
 
         const updatedEvaluation = {
           evaluation: {
