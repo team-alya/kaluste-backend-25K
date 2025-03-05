@@ -1,31 +1,21 @@
-import express, { Request, Response } from "express";
-import User from "../middleware/models/user";
-import { tokenGenerator } from "@/utils/auth";
+import express, { NextFunction, Request, Response } from 'express';
+import User from '../middleware/models/user';
+import { tokenGenerator } from '@/utils/auth';
+import { CustomError } from '@/types/customError';
 
 const router = express.Router();
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, password, email, firstname, lastname, role } = req.body;
 
     const existingUser = await User.findOne({ username });
 
     if (existingUser) {
-      return res
-        .status(400)
-        .json({
-          message: "Username is taken, please choose a different username",
-        });
+      throw new CustomError("This username is already taken.", 400);
     }
 
-    const newUser = new User({
-      username,
-      password,
-      email,
-      firstname,
-      lastname,
-      role,
-    });
+    const newUser = new User({ username, password, email, firstname, lastname, role });
     await newUser.save();
 
     const token = tokenGenerator(newUser.username);
@@ -36,13 +26,16 @@ router.post("/", async (req: Request, res: Response) => {
         id: newUser._id,
         username: newUser.username,
         email: newUser.email,
-      },
-    });
+        firstname: newUser.firstname,
+        lastname: newUser.lastname,
+        role: newUser.role
+      }
+    })
+
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Error while trying to register", error: error });
+    return next(error);
   }
-});
+
+})
 
 export default router;
