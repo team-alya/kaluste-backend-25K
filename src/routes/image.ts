@@ -7,7 +7,10 @@ import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
-import { chatgptForBrandAndModel, chatgptRestOfAnalysis } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
+import {
+  chatgptForBrandAndModel,
+  chatgptRestOfAnalysis,
+} from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 //import fs from "fs";
 
 const router = express.Router();
@@ -86,6 +89,7 @@ router.post(
   "/imagetest",
   imageUploadHandler(),
   async (req: Request, res: Response) => {
+    let savedImageId: string = "";
     try {
       if (!req.file || !req.file.buffer) {
         return res.status(400).json({ error: "No image file provided" });
@@ -101,40 +105,43 @@ router.post(
         });
 
         const savedImage = await imageForEvaluation.save();
-        console.log("saved image successfully, id: " + savedImage.id);
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
 
-        console.log("pass the id to serpapi");
-        const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
-        console.log(serpApiResponse);
+        try {
+          console.log("pass the id to serpapi");
+          const serpApiResponse: BaseResponse = await serpapi(savedImageId);
 
-        console.log("delete the image from db");
-        await Image.findByIdAndDelete(savedImage.id);
+          const [chatgptResponse, restGptAnalysis] = await Promise.all([
+            chatgptForBrandAndModel(serpApiResponse),
+            chatgptRestOfAnalysis(optimizedImage.buffer),
+          ]);
 
-        const [chatgptResponse, restGptAnalysis] = await Promise.all([
-          chatgptForBrandAndModel(serpApiResponse),
-          chatgptRestOfAnalysis(optimizedImage.buffer)
-        ]);
-
-        const updatedEvaluation = {
-          evaluation: {
-            brand: chatgptResponse.merkki || "Ei tiedossa",
-            model: chatgptResponse.malli || "Ei tiedossa",
-            color: restGptAnalysis.vari || "Ei tiedossa",
-            dimensions: {
-              length: restGptAnalysis.mitat.pituus || 0,
-              width: restGptAnalysis.mitat.leveys || 0,
-              height: restGptAnalysis.mitat.korkeus || 0,
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+              color: restGptAnalysis.vari || "Ei tiedossa",
+              dimensions: {
+                length: restGptAnalysis.mitat.pituus || 0,
+                width: restGptAnalysis.mitat.leveys || 0,
+                height: restGptAnalysis.mitat.korkeus || 0,
+              },
+              materials: restGptAnalysis.materiaalit || [],
+              condition: restGptAnalysis.kunto || "Ei tiedossa",
             },
-            materials: restGptAnalysis.materiaalit || [],
-            condition: restGptAnalysis.kunto || "Ei tiedossa",
-          },
-        };
-        return res.json(updatedEvaluation);
-
+          };
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          const errorMessage =
+            error instanceof Error ? error.message : "Analysis pipeline failed";
+          throw new Error(errorMessage);
+        }
       } catch (error) {
-        console.error("Pipeline error:", error);
+        console.error("Image handling failed: ", error);
         const errorMessage =
-          error instanceof Error ? error.message : "Analysis pipeline failed";
+          error instanceof Error ? error.message : "Image handling failed";
         throw new Error(errorMessage);
       }
     } catch (error) {
@@ -142,6 +149,16 @@ router.post(
       const errorMessage =
         error instanceof Error ? error.message : "An unexpected error occurred";
       throw new Error(errorMessage);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+        }
+      }
     }
   }
 );
