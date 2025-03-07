@@ -8,7 +8,7 @@ import SaveImage from "@/middleware/models/imageSave";
 
 const router = express.Router();
 
-router.get("/all", async (_req, res: Response) => {
+router.get("/all", async (_req, res: Response, next: NextFunction) => {
   try {
     const evaluations = await Evaluation.find();
 
@@ -58,7 +58,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 router.post(
     "/save",
     imageUploadHandler(),
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response) => {
         try {
             if (!req.file || !req.file.buffer) {
                 throw new CustomError("No image file provided", 400);

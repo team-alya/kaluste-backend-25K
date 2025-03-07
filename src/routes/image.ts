@@ -166,7 +166,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Find evaluation image by id
-router.get("/image/:id", async (req: Request, res: Response) => {
+router.get("/image/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await SaveImage.findById(req.params.id);
 
@@ -377,7 +377,4 @@ router.get("/all", async (_req, res: Response) => {
 */
 
 export default router;
-function next(error: unknown): void | PromiseLike<void> {
-  throw new Error("Function not implemented.");
-}
 
