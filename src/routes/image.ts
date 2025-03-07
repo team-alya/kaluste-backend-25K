@@ -17,75 +17,82 @@ import { CustomError } from "@/types/customError";
 
 const router = express.Router();
 
-router.post("/", imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.file || !req.file.buffer) {
-      throw new CustomError("No image file provided", 400);
-    }
-
-    const optimizedImage = await resizeImage(req.file.buffer);
-
+router.post(
+  "/",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let furnitureData = await runImageAnalysisPipeline(optimizedImage.buffer);
-
-      if (!furnitureData.merkki || furnitureData.merkki === "Ei tiedossa") {
-        console.log("Brand missing, attempting final analysis...");
-        try {
-          const finalResult = await finalAnalyze(optimizedImage.buffer);
-          // Päivitetään vain merkki ja malli. Muuten käytetään furniterDataa analyysia sellaisenaan.
-          furnitureData = {
-            ...furnitureData,
-            merkki: finalResult.merkki,
-            malli: finalResult.malli,
-          };
-        } catch (analyzeError) {
-          console.error("Final analysis error:", analyzeError);
-          throw new CustomError("Final image analysis failed", 500);
-        }
+      if (!req.file || !req.file.buffer) {
+        throw new CustomError("No image file provided", 400);
       }
 
-      const responseData = {
-        ...furnitureData,
-      };
+      const optimizedImage = await resizeImage(req.file.buffer);
 
-      const newEvaluation = new Evaluation({
-        contentType: req.file.mimetype,
-        image: optimizedImage.buffer,
-        evaluation: {
-          brand: furnitureData.merkki || "Ei tiedossa",
-          model: furnitureData.malli || "Ei tiedossa",
-          color: furnitureData.vari || "Ei tiedossa",
-          dimensions: {
-            length: furnitureData.mitat?.pituus || 0,
-            width: furnitureData.mitat?.leveys || 0,
-            height: furnitureData.mitat?.korkeus || 0,
+      try {
+        let furnitureData = await runImageAnalysisPipeline(
+          optimizedImage.buffer
+        );
+
+        if (!furnitureData.merkki || furnitureData.merkki === "Ei tiedossa") {
+          console.log("Brand missing, attempting final analysis...");
+          try {
+            const finalResult = await finalAnalyze(optimizedImage.buffer);
+            // Päivitetään vain merkki ja malli. Muuten käytetään furniterDataa analyysia sellaisenaan.
+            furnitureData = {
+              ...furnitureData,
+              merkki: finalResult.merkki,
+              malli: finalResult.malli,
+            };
+          } catch (analyzeError) {
+            console.error("Final analysis error:", analyzeError);
+            throw new CustomError("Final image analysis failed", 500);
+          }
+        }
+
+        const responseData = {
+          ...furnitureData,
+        };
+
+        const newEvaluation = new Evaluation({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+          evaluation: {
+            brand: furnitureData.merkki || "Ei tiedossa",
+            model: furnitureData.malli || "Ei tiedossa",
+            color: furnitureData.vari || "Ei tiedossa",
+            dimensions: {
+              length: furnitureData.mitat?.pituus || 0,
+              width: furnitureData.mitat?.leveys || 0,
+              height: furnitureData.mitat?.korkeus || 0,
+            },
+            materials:
+              furnitureData.materiaalit?.map((mat: string) => ({
+                material: mat,
+              })) || [],
+            condition: furnitureData.kunto || "Ei tiedossa",
           },
-          materials:
-            furnitureData.materiaalit?.map((mat: string) => ({
-              material: mat,
-            })) || [],
-          condition: furnitureData.kunto || "Ei tiedossa",
-        },
-      });
+        });
 
-      const savedEvaluation = await newEvaluation.save();
-      const checkImage = await Evaluation.findById(savedEvaluation._id);
-      console.log("Saved image buffer size:", checkImage?.image.length);
-      console.log("returning response data");
+        const savedEvaluation = await newEvaluation.save();
+        const checkImage = await Evaluation.findById(savedEvaluation._id);
+        console.log("Saved image buffer size:", checkImage?.image.length);
+        console.log("returning response data");
 
-      return res.status(200).json(responseData);
+        return res.status(200).json(responseData);
+      } catch (error) {
+        return next(error);
+      }
     } catch (error) {
-      throw new CustomError("Analysis pipeline failed", 500);
+      return next(error);
     }
-  } catch (error) {
-    return next(error);
   }
-});
+);
 
 router.post(
   "/imagetest",
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
     try {
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
@@ -147,7 +154,7 @@ router.post(
           console.log("Image deleted successfully.");
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
-          return next(error);
+          next(deleteError);
         }
       }
     }
@@ -166,7 +173,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
-    return next(error)
+    return next(error);
   }
 });
 
