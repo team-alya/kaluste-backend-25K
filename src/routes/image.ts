@@ -5,12 +5,9 @@ import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysi
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import {
-  chatgptForBrandAndModel,
-  chatgptRestOfAnalysis,
-} from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
+import { chatgptForBrandAndModel, chatgptRestOfAnalysis } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 //import fs from "fs";
 
 const router = express.Router();
@@ -85,11 +82,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   }
 });
 
-interface VisualMatch {
-  position: string;
-  title: string;
-}
-
 router.post(
   "/imagetest",
   imageUploadHandler(),
@@ -101,7 +93,7 @@ router.post(
       const optimizedImage = await resizeImage(req.file.buffer);
 
       try {
-        console.log("trying to save img");
+        console.log("trying to save image to db");
 
         const imageForEvaluation = new Image({
           contentType: req.file.mimetype,
@@ -109,28 +101,19 @@ router.post(
         });
 
         const savedImage = await imageForEvaluation.save();
-        console.log("saved image id: " + savedImage.id);
+        console.log("saved image successfully, id: " + savedImage.id);
 
+        console.log("pass the id to serpapi");
         const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
+        console.log(serpApiResponse);
 
-        const trimmedSerpApiResponse: VisualMatch[] =
-          serpApiResponse.visual_matches
-            .map((match: VisualMatch) => ({
-              position: match.position,
-              title: match.title,
-            }))
-            .slice(0, 10);
+        console.log("delete the image from db");
+        await Image.findByIdAndDelete(savedImage.id);
 
-        const chatgptResponse = await chatgptForBrandAndModel(
-          trimmedSerpApiResponse
-        );
-        console.log(trimmedSerpApiResponse);
-
-        console.log("Start rest of analysis");
-        const restGptAnalysis = await chatgptRestOfAnalysis(
-          optimizedImage.buffer
-        );
-        console.log(restGptAnalysis);
+        const [chatgptResponse, restGptAnalysis] = await Promise.all([
+          chatgptForBrandAndModel(serpApiResponse),
+          chatgptRestOfAnalysis(optimizedImage.buffer)
+        ]);
 
         const updatedEvaluation = {
           evaluation: {
@@ -146,9 +129,8 @@ router.post(
             condition: restGptAnalysis.kunto || "Ei tiedossa",
           },
         };
-
-        await Image.findByIdAndDelete(savedImage.id);
         return res.json(updatedEvaluation);
+
       } catch (error) {
         console.error("Pipeline error:", error);
         const errorMessage =
@@ -159,7 +141,7 @@ router.post(
       console.error("Server error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "An unexpected error occurred";
-      return res.status(500).json({ error: errorMessage });
+      throw new Error(errorMessage);
     }
   }
 );
