@@ -1,13 +1,27 @@
 import { NextFunction, Request, Response } from "express";
+import { CustomError } from "@/types/customError";
 
 export const errorHandler = (
-  err: Error,
+  err: CustomError,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
-  console.error("Server error:", err);
-  res.status(500).json({
+
+  const errorTypes: Record<number, string> = {
+    400: "Bad Request;",
+    401: "Unauthorized;",
+    403: "Forbidden;",
+    404: "Not Found;",
+    502: "Bad Gateway;",
+    503: "Service Unavailable;",
+    504: "Gateway Timeout;",
+  }
+
+  const errorCode = err.status || 500;
+  const errorType = errorTypes[errorCode];
+  console.error("Server error:", err.status, errorType, err.stack);
+  res.status(errorCode).json({
     error: err.message || "Internal server error",
   });
 };
