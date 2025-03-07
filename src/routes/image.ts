@@ -12,6 +12,8 @@ import {
   chatgptRestOfAnalysis,
 } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
+import SaveImage from "@/middleware/models/imageSave";
+import Evatest from "@/middleware/models/eva";
 
 //import fs from "fs";
 
@@ -177,6 +179,82 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   }
 });
 
+// Find evaluation image by id
+router.get("/image/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const image = await SaveImage.findById(req.params.id);
+
+    if (!image) {
+      throw new CustomError("Image not found", 404);
+    }
+
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return next(error)
+  }
+});
+
+
+router.post(
+  "/saveimage",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+
+      try {
+        console.log("trying to save img");
+
+        const imageForEvaluation = new SaveImage({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        console.log("saved image id: " + savedImage.id);
+
+        const newEvaluation = new Evatest({
+          imageId: savedImage.id,
+          evaluation: {
+            brand: "Ei tiedossa",
+            model: "Ei tiedossa",
+            color: "Ei tiedossa",
+            dimensions: {
+              length: 0,
+              width: 0,
+              height: 0,
+            },
+            materials:
+              [],
+            condition: "Ei tiedossa",
+          },
+        });
+  
+        const savedEvaluation = await newEvaluation.save();
+
+        //await Image.findByIdAndDelete(savedImage.id);
+        return res.json(savedEvaluation);
+      } catch (error) {
+        console.error("Pipeline error:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Analysis pipeline failed";
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      return res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+
 /*
 // For testing serpApi:
 router.post(
@@ -313,3 +391,4 @@ router.get("/all", async (_req, res: Response) => {
 */
 
 export default router;
+
