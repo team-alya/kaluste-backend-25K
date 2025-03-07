@@ -5,10 +5,14 @@ import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysi
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import { chatgpt } from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
+import {
+  chatgptForBrandAndModel,
+  chatgptRestOfAnalysis,
+} from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
+
 //import fs from "fs";
 
 const router = express.Router();
@@ -78,11 +82,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response, next:
   }
 });
 
-interface VisualMatch {
-  position: string;
-  title: string;
-}
-
 router.post(
   "/imagetest",
   imageUploadHandler(),
@@ -94,7 +93,7 @@ router.post(
       const optimizedImage = await resizeImage(req.file.buffer);
 
       try {
-        console.log("trying to save img");
+        console.log("trying to save image to db");
 
         const imageForEvaluation = new Image({
           contentType: req.file.mimetype,
@@ -102,46 +101,55 @@ router.post(
         });
 
         const savedImage = await imageForEvaluation.save();
-        console.log("saved image id: " + savedImage.id);
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
 
-        const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
+        try {
+          console.log("pass the id to serpapi");
+          const serpApiResponse: BaseResponse = await serpapi(savedImageId);
 
-        const trimmedSerpApiResponse: VisualMatch[] =
-          serpApiResponse.visual_matches
-            .map((match: VisualMatch) => ({
-              position: match.position,
-              title: match.title,
-            }))
-            .slice(0, 10);
+          const [chatgptResponse, restGptAnalysis] = await Promise.all([
+            chatgptForBrandAndModel(serpApiResponse),
+            chatgptRestOfAnalysis(optimizedImage.buffer),
+          ]);
 
-        const chatgptResponse = await chatgpt(trimmedSerpApiResponse);
-        console.log(chatgptResponse);
-        console.log("Positions used: " + trimmedSerpApiResponse.length);
-        console.log(trimmedSerpApiResponse);
-
-        const updatedEvaluation = {
-          evaluation: {
-            brand: chatgptResponse.merkki,
-            model: chatgptResponse.malli,
-            color: "Ei tiedossa",
-            dimensions: {
-              length: 0,
-              width: 0,
-              height: 0,
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+              color: restGptAnalysis.vari || "Ei tiedossa",
+              dimensions: {
+                length: restGptAnalysis.mitat.pituus || 0,
+                width: restGptAnalysis.mitat.leveys || 0,
+                height: restGptAnalysis.mitat.korkeus || 0,
+              },
+              materials: restGptAnalysis.materiaalit || [],
+              condition: restGptAnalysis.kunto || "Ei tiedossa",
             },
-            materials: [],
-            condition: "Ei tiedossa",
-          },
-        };
-
-        await Image.findByIdAndDelete(savedImage.id);
-        return res.json(updatedEvaluation);
+          };
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
       } catch (error) {
-        console.error("Pipeline error:", error);
-        throw new CustomError("Analysis pipeline failed", 500);
+        console.error("Image handling failed: ", error);
+        return next(error);
       }
     } catch (error) {
+      console.error("Server error:", error);
       return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          return next(error);
+        }
+      }
     }
   }
 );

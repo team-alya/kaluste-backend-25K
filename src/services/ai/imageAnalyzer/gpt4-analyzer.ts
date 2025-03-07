@@ -37,7 +37,8 @@ export class GPT4Analyzer implements AIAnalyzer {
       console.error("Error analyzing image:", error);
       throw error;
     }
-  }
+  };
+  
 
   // analyze(_imageBuffer: Buffer): Promise<FurnitureDetails> {
   //   return Promise.resolve({
@@ -53,4 +54,4 @@ export class GPT4Analyzer implements AIAnalyzer {
   //     kunto: "Uusi",
   //   });
   // }
-}
+};
