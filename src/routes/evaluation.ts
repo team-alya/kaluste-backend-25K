@@ -1,7 +1,8 @@
 import Evaluation from "@/middleware/models/evaluation";
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
 import { resizeImage } from "../utils/resizeImage";
+import { CustomError } from "@/types/customError";
 import Evatest from "@/middleware/models/eva";
 import SaveImage from "@/middleware/models/imageSave";
 
@@ -11,59 +12,59 @@ router.get("/all", async (_req, res: Response) => {
   try {
     const evaluations = await Evaluation.find();
 
-    const formattedEvaluations = evaluations.map((evaluation) => ({
-      id: evaluation._id,
-      contentType: evaluation.contentType,
-      timeStamp: evaluation.timeStamp,
-      evaluation: evaluation.evaluation,
-      image:
-        evaluation.image instanceof Buffer
-          ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
-          : null,
-    }));
+        const formattedEvaluations = evaluations.map((evaluation) => ({
+            id: evaluation._id,
+            contentType: evaluation.contentType,
+            timeStamp: evaluation.timeStamp,
+            evaluation: evaluation.evaluation,
+            image:
+                evaluation.image instanceof Buffer
+                    ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
+                    : null,
+        }));
 
-    return res.json(formattedEvaluations);
-  } catch (error) {
-    console.error("Error fetching evaluations:", error);
-    return res.status(500).json({ error: "Error fetching evaluations" });
-  }
+        return res.json(formattedEvaluations);
+    } catch (error) {
+
+        return next(new CustomError("Error fetching evaluations", 500));
+    }
 });
 
-router.get("/:id", async (req: Request, res: Response) => {
-  try {
-    const evaluation = await Evaluation.findById(req.params.id);
-    if (!evaluation) {
-      return res.status(404).json({ error: "Evaluation not found" });
-    }
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const evaluation = await Evaluation.findById(req.params.id);
+        if (!evaluation) {
+            throw new CustomError("Evaluation not found", 404);
+        }
 
-    let base64Image = null;
-    if (evaluation.image && evaluation.image.buffer) {
-      base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
-    }
+        let base64Image = null;
+        if (evaluation.image && evaluation.image.buffer) {
+            base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
+        }
 
-    return res.json({
-      id: evaluation._id,
-      contentType: evaluation.contentType,
-      timeStamp: evaluation.timeStamp,
-      evaluation: evaluation.evaluation,
-      image: base64Image,
-    });
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return res.status(500).json({ error: "Error fetching image" });
-  }
+        return res.json({
+            id: evaluation._id,
+            contentType: evaluation.contentType,
+            timeStamp: evaluation.timeStamp,
+            evaluation: evaluation.evaluation,
+            image: base64Image,
+        });
+    } catch (error) {
+        console.error("Error fetching image:", error);
+        return next(error);
+    }
 });
 
 router.post(
-  "/save",
-  imageUploadHandler(),
-  async (req: Request, res: Response) => {
-    try {
-      if (!req.file || !req.file.buffer) {
-        return res.status(400).json({ error: "No image file provided" });
-      }
+    "/save",
+    imageUploadHandler(),
+    async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.file || !req.file.buffer) {
+                throw new CustomError("No image file provided", 400);
+            }
 
-      const optimizedImage = await resizeImage(req.file.buffer);
+            const optimizedImage = await resizeImage(req.file.buffer);
 
       const newEvaluation = new Evaluation({
         contentType: req.file.mimetype,

@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
 import { finalAnalyze } from "../services/ai/generate-objects";
 import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
@@ -8,6 +8,7 @@ import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgpt } from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
+import { CustomError } from "@/types/customError";
 import SaveImage from "@/middleware/models/imageSave";
 import Evatest from "@/middleware/models/eva";
 
@@ -15,10 +16,10 @@ import Evatest from "@/middleware/models/eva";
 
 const router = express.Router();
 
-router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
+router.post("/", imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.file || !req.file.buffer) {
-      return res.status(400).json({ error: "No image file provided" });
+      throw new CustomError("No image file provided", 400);
     }
 
     const optimizedImage = await resizeImage(req.file.buffer);
@@ -38,6 +39,7 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
           };
         } catch (analyzeError) {
           console.error("Final analysis error:", analyzeError);
+          throw new CustomError("Final image analysis failed", 500);
         }
       }
 
@@ -72,26 +74,25 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
 
       return res.status(200).json(responseData);
     } catch (error) {
-      console.error("Pipeline error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Analysis pipeline failed";
-      throw new Error(errorMessage);
+      throw new CustomError("Analysis pipeline failed", 500);
     }
   } catch (error) {
-    console.error("Server error:", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "An unexpected error occurred";
-    return res.status(500).json({ error: errorMessage });
+    return next(error);
   }
 });
+
+interface VisualMatch {
+  position: string;
+  title: string;
+}
 
 router.post(
   "/imagetest",
   imageUploadHandler(),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file || !req.file.buffer) {
-        return res.status(400).json({ error: "No image file provided" });
+        throw new CustomError("No image file provided", 400);
       }
       const optimizedImage = await resizeImage(req.file.buffer);
 
@@ -107,8 +108,19 @@ router.post(
         console.log("saved image id: " + savedImage.id);
 
         const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
-        const chatgptResponse = await chatgpt(serpApiResponse);
+
+        const trimmedSerpApiResponse: VisualMatch[] =
+          serpApiResponse.visual_matches
+            .map((match: VisualMatch) => ({
+              position: match.position,
+              title: match.title,
+            }))
+            .slice(0, 10);
+
+        const chatgptResponse = await chatgpt(trimmedSerpApiResponse);
         console.log(chatgptResponse);
+        console.log("Positions used: " + trimmedSerpApiResponse.length);
+        console.log(trimmedSerpApiResponse);
 
         const updatedEvaluation = {
           evaluation: {
@@ -129,32 +141,27 @@ router.post(
         return res.json(updatedEvaluation);
       } catch (error) {
         console.error("Pipeline error:", error);
-        const errorMessage =
-          error instanceof Error ? error.message : "Analysis pipeline failed";
-        throw new Error(errorMessage);
+        throw new CustomError("Analysis pipeline failed", 500);
       }
     } catch (error) {
-      console.error("Server error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      return res.status(500).json({ error: errorMessage });
+      return next(error);
     }
   }
 );
 
 // Find evaluation image by id
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await Image.findById(req.params.id);
     if (!image) {
-      return res.status(404).json({ error: "Image not found" });
+      throw new CustomError("Image not found", 404);
     }
 
     res.setHeader("Content-Type", image.contentType);
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
-    return res.status(500).json({ error: "Error fetching image" });
+    return next(error)
   }
 });
 
@@ -164,14 +171,14 @@ router.get("/image/:id", async (req: Request, res: Response) => {
     const image = await SaveImage.findById(req.params.id);
 
     if (!image) {
-      return res.status(404).json({ error: "Image not found" });
+      throw new CustomError("Image not found", 404);
     }
 
     res.setHeader("Content-Type", image.contentType);
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
-    return res.status(500).json({ error: "Error fetching image" });
+    return next(error)
   }
 });
 
@@ -370,3 +377,7 @@ router.get("/all", async (_req, res: Response) => {
 */
 
 export default router;
+function next(error: unknown): void | PromiseLike<void> {
+  throw new Error("Function not implemented.");
+}
+
