@@ -8,6 +8,9 @@ import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgpt } from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
+import SaveImage from "@/middleware/models/imageSave";
+import Evatest from "@/middleware/models/eva";
+
 //import fs from "fs";
 
 const router = express.Router();
@@ -154,6 +157,82 @@ router.get("/:id", async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Error fetching image" });
   }
 });
+
+// Find evaluation image by id
+router.get("/image/:id", async (req: Request, res: Response) => {
+  try {
+    const image = await SaveImage.findById(req.params.id);
+
+    if (!image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return res.status(500).json({ error: "Error fetching image" });
+  }
+});
+
+
+router.post(
+  "/saveimage",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+
+      try {
+        console.log("trying to save img");
+
+        const imageForEvaluation = new SaveImage({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        console.log("saved image id: " + savedImage.id);
+
+        const newEvaluation = new Evatest({
+          imageId: savedImage.id,
+          evaluation: {
+            brand: "Ei tiedossa",
+            model: "Ei tiedossa",
+            color: "Ei tiedossa",
+            dimensions: {
+              length: 0,
+              width: 0,
+              height: 0,
+            },
+            materials:
+              [],
+            condition: "Ei tiedossa",
+          },
+        });
+  
+        const savedEvaluation = await newEvaluation.save();
+
+        //await Image.findByIdAndDelete(savedImage.id);
+        return res.json(savedEvaluation);
+      } catch (error) {
+        console.error("Pipeline error:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Analysis pipeline failed";
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      return res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
 
 /*
 // For testing serpApi:

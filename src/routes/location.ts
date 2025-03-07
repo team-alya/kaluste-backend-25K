@@ -1,8 +1,7 @@
 import express, { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
-import Location from "@/models/locations";
-
+import Location from "@/middleware/models/locations";
 dotenv.config();
  
 const router = express.Router();
