@@ -12,6 +12,8 @@ import { CustomError } from "@/types/customError";
 import SaveImage from "@/middleware/models/imageSave";
 import Evatest from "@/middleware/models/eva";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
+import { searchApi } from "@/services/ai/imageAnalyzer/searchApi";
+import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
 
 //import fs from "fs";
 
@@ -249,6 +251,131 @@ router.post(
       const errorMessage =
         error instanceof Error ? error.message : "An unexpected error occurred";
       return res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+router.post(
+  "/search",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+      try {
+        console.log("trying to save image to db");
+
+        const imageForEvaluation = new Image({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
+
+        try {
+          const searchApiResponse = await searchApi(savedImageId);
+
+          const chatgptResponse =
+            await chatgptForBrandAndModel(searchApiResponse);
+
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+            },
+          };
+
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
+      } catch (error) {
+        console.error("Image handling failed: ", error);
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
+    }
+  }
+);
+
+router.post(
+  "/scraping",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+      try {
+        console.log("trying to save image to db");
+
+        const imageForEvaluation = new Image({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
+
+        try {
+          const scrapingApiResponse = await scrapingDog(savedImageId);
+          console.log(scrapingApiResponse);
+
+          const chatgptResponse =
+            await chatgptForBrandAndModel(scrapingApiResponse);
+
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+            },
+          };
+
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
+      } catch (error) {
+        console.error("Image handling failed: ", error);
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
     }
   }
 );
