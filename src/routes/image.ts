@@ -5,88 +5,94 @@ import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysi
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import { chatgpt } from "@/services/ai/chatgpt";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
+import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
+import SaveImage from "@/middleware/models/imageSave";
+import Evatest from "@/middleware/models/eva";
+import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
+
 //import fs from "fs";
 
 const router = express.Router();
 
-router.post("/", imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.file || !req.file.buffer) {
-      throw new CustomError("No image file provided", 400);
-    }
-
-    const optimizedImage = await resizeImage(req.file.buffer);
-
+router.post(
+  "/",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let furnitureData = await runImageAnalysisPipeline(optimizedImage.buffer);
-
-      if (!furnitureData.merkki || furnitureData.merkki === "Ei tiedossa") {
-        console.log("Brand missing, attempting final analysis...");
-        try {
-          const finalResult = await finalAnalyze(optimizedImage.buffer);
-          // Päivitetään vain merkki ja malli. Muuten käytetään furniterDataa analyysia sellaisenaan.
-          furnitureData = {
-            ...furnitureData,
-            merkki: finalResult.merkki,
-            malli: finalResult.malli,
-          };
-        } catch (analyzeError) {
-          console.error("Final analysis error:", analyzeError);
-          throw new CustomError("Final image analysis failed", 500);
-        }
+      if (!req.file || !req.file.buffer) {
+        throw new CustomError("No image file provided", 400);
       }
 
-      const responseData = {
-        ...furnitureData,
-      };
+      const optimizedImage = await resizeImage(req.file.buffer);
 
-      const newEvaluation = new Evaluation({
-        contentType: req.file.mimetype,
-        image: optimizedImage.buffer,
-        evaluation: {
-          brand: furnitureData.merkki || "Ei tiedossa",
-          model: furnitureData.malli || "Ei tiedossa",
-          color: furnitureData.vari || "Ei tiedossa",
-          dimensions: {
-            length: furnitureData.mitat?.pituus || 0,
-            width: furnitureData.mitat?.leveys || 0,
-            height: furnitureData.mitat?.korkeus || 0,
+      try {
+        let furnitureData = await runImageAnalysisPipeline(
+          optimizedImage.buffer
+        );
+
+        if (!furnitureData.merkki || furnitureData.merkki === "Ei tiedossa") {
+          console.log("Brand missing, attempting final analysis...");
+          try {
+            const finalResult = await finalAnalyze(optimizedImage.buffer);
+            // Päivitetään vain merkki ja malli. Muuten käytetään furniterDataa analyysia sellaisenaan.
+            furnitureData = {
+              ...furnitureData,
+              merkki: finalResult.merkki,
+              malli: finalResult.malli,
+            };
+          } catch (analyzeError) {
+            console.error("Final analysis error:", analyzeError);
+            throw new CustomError("Final image analysis failed", 500);
+          }
+        }
+
+        const responseData = {
+          ...furnitureData,
+        };
+
+        const newEvaluation = new Evaluation({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+          evaluation: {
+            brand: furnitureData.merkki || "Ei tiedossa",
+            model: furnitureData.malli || "Ei tiedossa",
+            color: furnitureData.vari || "Ei tiedossa",
+            dimensions: {
+              length: furnitureData.mitat?.pituus || 0,
+              width: furnitureData.mitat?.leveys || 0,
+              height: furnitureData.mitat?.korkeus || 0,
+            },
+            materials:
+              furnitureData.materiaalit?.map((mat: string) => ({
+                material: mat,
+              })) || [],
+            condition: furnitureData.kunto || "Ei tiedossa",
           },
-          materials:
-            furnitureData.materiaalit?.map((mat: string) => ({
-              material: mat,
-            })) || [],
-          condition: furnitureData.kunto || "Ei tiedossa",
-        },
-      });
+        });
 
-      const savedEvaluation = await newEvaluation.save();
-      const checkImage = await Evaluation.findById(savedEvaluation._id);
-      console.log("Saved image buffer size:", checkImage?.image.length);
-      console.log("returning response data");
+        const savedEvaluation = await newEvaluation.save();
+        const checkImage = await Evaluation.findById(savedEvaluation._id);
+        console.log("Saved image buffer size:", checkImage?.image.length);
+        console.log("returning response data");
 
-      return res.status(200).json(responseData);
+        return res.status(200).json(responseData);
+      } catch (error) {
+        return next(error);
+      }
     } catch (error) {
-      throw new CustomError("Analysis pipeline failed", 500);
+      return next(error);
     }
-  } catch (error) {
-    return next(error);
   }
-});
-
-interface VisualMatch {
-  position: string;
-  title: string;
-}
+);
 
 router.post(
   "/imagetest",
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
     try {
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
@@ -94,7 +100,7 @@ router.post(
       const optimizedImage = await resizeImage(req.file.buffer);
 
       try {
-        console.log("trying to save img");
+        console.log("trying to save image to db");
 
         const imageForEvaluation = new Image({
           contentType: req.file.mimetype,
@@ -102,46 +108,55 @@ router.post(
         });
 
         const savedImage = await imageForEvaluation.save();
-        console.log("saved image id: " + savedImage.id);
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
 
-        const serpApiResponse: BaseResponse = await serpapi(savedImage.id);
+        try {
+          console.log("pass the id to serpapi");
+          const serpApiResponse: BaseResponse = await serpapi(savedImageId);
 
-        const trimmedSerpApiResponse: VisualMatch[] =
-          serpApiResponse.visual_matches
-            .map((match: VisualMatch) => ({
-              position: match.position,
-              title: match.title,
-            }))
-            .slice(0, 10);
+          const [chatgptResponse, restGptAnalysis] = await Promise.all([
+            chatgptForBrandAndModel(serpApiResponse),
+            chatgptRestOfAnalysis(optimizedImage.buffer),
+          ]);
 
-        const chatgptResponse = await chatgpt(trimmedSerpApiResponse);
-        console.log(chatgptResponse);
-        console.log("Positions used: " + trimmedSerpApiResponse.length);
-        console.log(trimmedSerpApiResponse);
-
-        const updatedEvaluation = {
-          evaluation: {
-            brand: chatgptResponse.merkki,
-            model: chatgptResponse.malli,
-            color: "Ei tiedossa",
-            dimensions: {
-              length: 0,
-              width: 0,
-              height: 0,
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+              color: restGptAnalysis.vari || "Ei tiedossa",
+              dimensions: {
+                length: restGptAnalysis.mitat.pituus || 0,
+                width: restGptAnalysis.mitat.leveys || 0,
+                height: restGptAnalysis.mitat.korkeus || 0,
+              },
+              materials: restGptAnalysis.materiaalit || [],
+              condition: restGptAnalysis.kunto || "Ei tiedossa",
             },
-            materials: [],
-            condition: "Ei tiedossa",
-          },
-        };
-
-        await Image.findByIdAndDelete(savedImage.id);
-        return res.json(updatedEvaluation);
+          };
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
       } catch (error) {
-        console.error("Pipeline error:", error);
-        throw new CustomError("Analysis pipeline failed", 500);
+        console.error("Image handling failed: ", error);
+        return next(error);
       }
     } catch (error) {
+      console.error("Server error:", error);
       return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
     }
   }
 );
@@ -158,9 +173,85 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
-    return next(error)
+    return next(error);
   }
 });
+
+// Find evaluation image by id
+router.get(
+  "/image/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const image = await SaveImage.findById(req.params.id);
+
+      if (!image) {
+        throw new CustomError("Image not found", 404);
+      }
+
+      res.setHeader("Content-Type", image.contentType);
+      return res.send(image.image);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/saveimage",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+
+      try {
+        console.log("trying to save img");
+
+        const imageForEvaluation = new SaveImage({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        console.log("saved image id: " + savedImage.id);
+
+        const newEvaluation = new Evatest({
+          imageId: savedImage.id,
+          evaluation: {
+            brand: "Ei tiedossa",
+            model: "Ei tiedossa",
+            color: "Ei tiedossa",
+            dimensions: {
+              length: 0,
+              width: 0,
+              height: 0,
+            },
+            materials: [],
+            condition: "Ei tiedossa",
+          },
+        });
+
+        const savedEvaluation = await newEvaluation.save();
+
+        //await Image.findByIdAndDelete(savedImage.id);
+        return res.json(savedEvaluation);
+      } catch (error) {
+        console.error("Pipeline error:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Analysis pipeline failed";
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      return res.status(500).json({ error: errorMessage });
+    }
+  }
+);
 
 /*
 // For testing serpApi:

@@ -100,3 +100,15 @@ Analyysin vaiheet:
 2. Vertaa näitä piirteitä tunnettuihin suomalaisiin ja pohjoismaisiin valmistajiin
 3. Palauta parhaiten sopivan valmistajan nimi
 `;
+
+export const dataAnalyzerGPT4oSystemMsg = `
+Analysoi seuraava data ja tunnista siitä **todennäköisin** huonekalun tai esineen valmistaja (merkki) ja malli.
+
+- **Etsi ja laske maininnat:** Jos sama merkki tai malli esiintyy useita kertoja, valitse **yleisimmin mainittu**.  
+- **Valmistaja (merkki):** Tunnista yleisin valmistaja tai brändi datasta (esim. "IKEA", "Arabia", "Pentik").  
+- **Malli:** Valitse yleisin mallinimi tai tunnus datasta (esim. "Aura", "Koivu", "Poäng").  
+- **Älä yhdistä vääriä tietoja:** Varmista, että valmistaja ja malli todella liittyvät toisiinsa.  
+- **Jos et löydä selkeitä tuloksia, palauta:** **"Ei tiedossa"**.  
+- Älä palauta ylimääräistä tekstiä
+`;
+

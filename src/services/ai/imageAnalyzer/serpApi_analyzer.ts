@@ -2,6 +2,11 @@ import { BaseResponse, getJson } from "serpapi";
 
 const serpApi_Key = process.env.SERPAPI_API_KEY;
 
+interface VisualMatch {
+  position: string;
+  title: string;
+}
+
 export const serpapi = async (id: string): Promise<BaseResponse> => {
   const result = await getJson(
     {
@@ -14,5 +19,14 @@ export const serpapi = async (id: string): Promise<BaseResponse> => {
       return json["visual_matches"];
     }
   );
-  return result;
+
+  const trimmedresult: VisualMatch[] =
+  result.visual_matches
+    .map((match: VisualMatch) => ({
+      position: match.position,
+      title: match.title,
+    }))
+    .slice(0, 20);
+
+  return trimmedresult;
 };
