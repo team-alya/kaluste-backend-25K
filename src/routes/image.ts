@@ -7,13 +7,11 @@ import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/imageSchema";
-import {
-  chatgptForBrandAndModel,
-  chatgptRestOfAnalysis,
-} from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
+import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
 import SaveImage from "@/middleware/models/imageSave";
 import Evatest from "@/middleware/models/eva";
+import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 
 //import fs from "fs";
 
@@ -180,22 +178,24 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Find evaluation image by id
-router.get("/image/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const image = await SaveImage.findById(req.params.id);
+router.get(
+  "/image/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const image = await SaveImage.findById(req.params.id);
 
-    if (!image) {
-      throw new CustomError("Image not found", 404);
+      if (!image) {
+        throw new CustomError("Image not found", 404);
+      }
+
+      res.setHeader("Content-Type", image.contentType);
+      return res.send(image.image);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(error);
     }
-
-    res.setHeader("Content-Type", image.contentType);
-    return res.send(image.image);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(error)
   }
-});
-
+);
 
 router.post(
   "/saveimage",
@@ -229,12 +229,11 @@ router.post(
               width: 0,
               height: 0,
             },
-            materials:
-              [],
+            materials: [],
             condition: "Ei tiedossa",
           },
         });
-  
+
         const savedEvaluation = await newEvaluation.save();
 
         //await Image.findByIdAndDelete(savedImage.id);
@@ -253,7 +252,6 @@ router.post(
     }
   }
 );
-
 
 /*
 // For testing serpApi:
@@ -391,4 +389,3 @@ router.get("/all", async (_req, res: Response) => {
 */
 
 export default router;
-

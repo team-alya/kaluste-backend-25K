@@ -1,4 +1,9 @@
-import { FurnitureDetails, furnitureDetailsSchema } from "@/types/schemas";
+import {
+  FurnitureDetails,
+  furnitureDetailsSchema,
+  NewFurnitureDetails,
+  newFurnitureDetailsSchema,
+} from "@/types/schemas";
 import { AIAnalyzer } from "@/types/services";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
@@ -37,8 +42,7 @@ export class GPT4Analyzer implements AIAnalyzer {
       console.error("Error analyzing image:", error);
       throw error;
     }
-  };
-  
+  }
 
   // analyze(_imageBuffer: Buffer): Promise<FurnitureDetails> {
   //   return Promise.resolve({
@@ -54,4 +58,31 @@ export class GPT4Analyzer implements AIAnalyzer {
   //     kunto: "Uusi",
   //   });
   // }
+}
+
+export const chatgptRestOfAnalysis = async (
+  imageBuffer: Buffer
+): Promise<NewFurnitureDetails> => {
+  const result = await generateObject({
+    model: openai("gpt-4o"),
+    schema: newFurnitureDetailsSchema,
+    output: "object",
+    system: imgAnalyzeSystemMsg,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: analyzeImagePromptGPT4o,
+          },
+          {
+            type: "image",
+            image: imageBuffer,
+          },
+        ],
+      },
+    ],
+  });
+  return result.object;
 };
