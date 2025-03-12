@@ -9,6 +9,8 @@ export const kuntoOptions = [
   "Ei tiedossa",
 ] as const;
 
+// These are not in use
+
 export const furnitureDetailsSchema = z
   .object({
     merkki: z
@@ -138,3 +140,48 @@ export const priceEstimationSchema = z.object({
 export type PriceEstimation = z.infer<typeof priceEstimationSchema>;
 export type PriceAnalysis = z.infer<typeof priceAnalysisSchema>;
 export type FurnitureDetails = z.infer<typeof furnitureDetailsSchema>;
+
+// These are in use
+
+export const serpApiResultSchema = z.object({
+  merkki: z
+    .string()
+    .describe(
+      "Huonekalun valmistajan nimi tai tyylisuunta. Tunnettujen valmistajien kohdalla palauta valmistajan nimi (esim. Isku, Martela, Artek, Asko, IKEA). Jos et pysty tunnistamaan merkkiä tai tyyliä varmuudella, palauta 'Ei tiedossa'."
+    ),
+  malli: z
+    .string()
+    .describe(
+      "Huonekalun mallinimi, sarja tai tyylillinen kuvaus. Voi olla tarkka mallisarja (esim. 'Kilta', 'Mondo'). Jos mallia ei voi tunnistaa varmuudella, palauta 'Ei tiedossa'. Älä arvaa."
+    ),
+  varmuus: z
+    .number()
+    .describe(
+      "Anna myös varmuusasteikko 0-1 siitä, kuinka varma tiedosta olet."
+    ),
+});
+
+export const newFurnitureDetailsSchema = z
+  .object({
+    vari: z.string(),
+    mitat: z
+      .object({
+        pituus: z.number(),
+        leveys: z.number(),
+        korkeus: z.number(),
+      })
+      .describe("Mitat senttimetreinä. Anna paras arviosi, jos et ole varma."),
+    materiaalit: z.array(z.string()),
+    kunto: z
+      .enum(kuntoOptions)
+      .describe(
+        "Huonekalun kuntoarvio. Valitse paras arvio listalta. Isolla alkukirjaimella."
+      ),
+  })
+  .describe(
+    "Jos et ole varma jostain kentästä, palauta 'Ei tiedossa'. Älä arvaa."
+  );
+
+export type NewFurnitureDetails = z.infer<typeof newFurnitureDetailsSchema>;
+export type SerpApiResult = z.infer<typeof serpApiResultSchema>;
+

@@ -15,5 +15,5 @@ imageSchema.set("toJSON", {
   },
 });
 
-const Image = mongoose.model("Image", imageSchema);
-export default Image;
+const tempImage = mongoose.model("tempImage", imageSchema);
+export default tempImage;
