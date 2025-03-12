@@ -117,6 +117,7 @@ router.post(
           console.log("pass the id to serpapi");
           const serpApiResponse: BaseResponse = await serpapi(savedImageId);
 
+          console.log("pass the serpapi response to chatgpt");
           const [chatgptResponse, restGptAnalysis] = await Promise.all([
             chatgptForBrandAndModel(serpApiResponse),
             chatgptRestOfAnalysis(optimizedImage.buffer),
