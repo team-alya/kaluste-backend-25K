@@ -1,24 +1,18 @@
 import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
-import { finalAnalyze } from "../services/ai/generate-objects";
-import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import Evaluation from "@/middleware/models/evaluation";
-import Image from "@/middleware/models/imageSchema";
+import tempImage from "@/middleware/models/tempImage";
 import {
   chatgptForBrandAndModel,
   chatgptRestOfAnalysis,
 } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
-import SaveImage from "@/middleware/models/imageSave";
-import Evatest from "@/middleware/models/eva";
-
-//import fs from "fs";
+import Image from "@/middleware/models/image";
 
 const router = express.Router();
-
+/*
 router.post(
   "/",
   imageUploadHandler(),
@@ -89,9 +83,9 @@ router.post(
     }
   }
 );
-
+*/
 router.post(
-  "/imagetest",
+  "/",
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";
@@ -104,7 +98,7 @@ router.post(
       try {
         console.log("trying to save image to db");
 
-        const imageForEvaluation = new Image({
+        const imageForEvaluation = new tempImage({
           contentType: req.file.mimetype,
           image: optimizedImage.buffer,
         });
@@ -152,7 +146,7 @@ router.post(
       if (savedImageId !== "") {
         try {
           console.log("delete the image from db");
-          await Image.findByIdAndDelete(savedImageId);
+          await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
@@ -164,9 +158,9 @@ router.post(
 );
 
 // Find evaluation image by id
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/serpapi/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const image = await Image.findById(req.params.id);
+    const image = await tempImage.findById(req.params.id);
     if (!image) {
       throw new CustomError("Image not found", 404);
     }
@@ -180,9 +174,9 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Find evaluation image by id
-router.get("/image/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const image = await SaveImage.findById(req.params.id);
+    const image = await Image.findById(req.params.id);
 
     if (!image) {
       throw new CustomError("Image not found", 404);
@@ -196,7 +190,7 @@ router.get("/image/:id", async (req: Request, res: Response, next: NextFunction)
   }
 });
 
-
+/*
 router.post(
   "/saveimage",
   imageUploadHandler(),
@@ -255,7 +249,7 @@ router.post(
 );
 
 
-/*
+
 // For testing serpApi:
 router.post(
   "/imagetest",

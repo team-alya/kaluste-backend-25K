@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+/*import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
@@ -11,15 +11,18 @@ export const kuntoOptions = [
     "Ei tiedossa",
   ] as const;
 
-const evaSchema = new Schema ({
+const evaluationSchema = new Schema ({
+    image: {
+        type: Buffer,
+        required: true,
+    },
+    contentType: {
+        type: String,
+        required: true,
+      },
     timeStamp: { 
         type: Date, 
         default: Date.now 
-    },
-    imageId: {
-        type: Schema.Types.ObjectId,
-        ref: "SaveImage",
-        required: true,
     },
     evaluation: {
         brand: {
@@ -72,7 +75,7 @@ const evaSchema = new Schema ({
     },
 });
 
-evaSchema.set('toJSON', {
+evaluationSchema.set('toJSON', {
     transform: (_document, returnedObject) => {
         returnedObject.id = returnedObject._id.toString()
         delete returnedObject._id
@@ -80,5 +83,7 @@ evaSchema.set('toJSON', {
     }
 });
 
-const Eva = mongoose.model("Evatest", evaSchema);
-export default Eva;
+const Evaluation = mongoose.model("Evaluation", evaluationSchema);
+export default Evaluation;
+
+*/

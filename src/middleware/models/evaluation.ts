@@ -12,17 +12,14 @@ export const kuntoOptions = [
   ] as const;
 
 const evaluationSchema = new Schema ({
-    image: {
-        type: Buffer,
-        required: true,
-    },
-    contentType: {
-        type: String,
-        required: true,
-      },
     timeStamp: { 
         type: Date, 
         default: Date.now 
+    },
+    imageId: {
+        type: Schema.Types.ObjectId,
+        ref: "SaveImage",
+        required: true,
     },
     evaluation: {
         brand: {
@@ -57,15 +54,11 @@ const evaluationSchema = new Schema ({
                 default: 0,
             }
         },
-        materials: [
-            {
-                material: {
-                    type: String,
-                    required: false,
-                    default: "Ei tiedossa",
-                }
-            }
-        ],
+        materials: {
+            type: [String],
+            required: false,
+            default: ["Ei tiedossa"],
+        },
         condition: {
             type: String,
             enum: kuntoOptions,  // TÄRKEÄ KORJAUS: enum määritellään näin
@@ -85,4 +78,3 @@ evaluationSchema.set('toJSON', {
 
 const Evaluation = mongoose.model("Evaluation", evaluationSchema);
 export default Evaluation;
-
