@@ -11,15 +11,18 @@ export const kuntoOptions = [
   "Ei tiedossa",
 ] as const;
 
-const evaSchema = new Schema ({
+const evaluationSchema = new Schema ({
+    image: {
+        type: Buffer,
+        required: true,
+    },
+    contentType: {
+        type: String,
+        required: true,
+      },
     timeStamp: { 
         type: Date, 
         default: Date.now 
-    },
-    imageId: {
-        type: Schema.Types.ObjectId,
-        ref: "SaveImage",
-        required: true,
     },
     evaluation: {
         brand: {
