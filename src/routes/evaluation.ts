@@ -64,7 +64,16 @@ router.post(
                 throw new CustomError("No image file provided", 400);
             }
 
+            if (!req.body.user) {
+                throw new CustomError("User required", 400);
+            }
+
             const optimizedImage = await resizeImage(req.file.buffer);
+
+            let userObject;
+            if (typeof req.body.user === "string") {
+                userObject = JSON.parse(req.body.user)
+            }
 
             const newEvaluation = new Evaluation({
                 contentType: req.file.mimetype,
@@ -83,6 +92,7 @@ router.post(
                             material: mat,
                         })) || [],
                     condition: req.body.kunto || "Ei tiedossa",
+                    user: userObject,
                 },
             });
 

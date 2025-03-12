@@ -9,9 +9,9 @@ export const kuntoOptions = [
     "Kohtalainen",
     "Huono",
     "Ei tiedossa",
-  ] as const;
+] as const;
 
-const evaluationSchema = new Schema ({
+const evaluationSchema = new Schema({
     image: {
         type: Buffer,
         required: true,
@@ -19,10 +19,10 @@ const evaluationSchema = new Schema ({
     contentType: {
         type: String,
         required: true,
-      },
-    timeStamp: { 
-        type: Date, 
-        default: Date.now 
+    },
+    timeStamp: {
+        type: Date,
+        default: Date.now
     },
     evaluation: {
         brand: {
@@ -71,6 +71,10 @@ const evaluationSchema = new Schema ({
             enum: kuntoOptions,  // TÄRKEÄ KORJAUS: enum määritellään näin
             required: false,  // Voi olla pakollinen tai ei
             default: "Ei tiedossa"  // Oletusarvo, jos ei anneta arvoa
+        },
+        user: {
+            type: Object,
+            required: true
         },
     },
 });

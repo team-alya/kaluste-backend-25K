@@ -86,7 +86,17 @@ router.post(
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
       }
+
+      if (!req.body.user) {
+        throw new CustomError("User required", 400);
+      }
+
       const optimizedImage = await resizeImage(req.file.buffer);
+
+      let userObject;
+      if (typeof req.body.user === "string") {
+        userObject = JSON.parse(req.body.user);
+      }
 
       try {
         console.log("trying to save img");
@@ -115,6 +125,7 @@ router.post(
             },
             materials: [],
             condition: "Ei tiedossa",
+            user: userObject,
           },
         };
 

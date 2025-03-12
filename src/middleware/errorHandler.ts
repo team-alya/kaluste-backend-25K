@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { CustomError } from "@/types/customError";
+import logger from "@/utils/logger";
 
 export const errorHandler = (
   err: CustomError,
@@ -24,4 +25,6 @@ export const errorHandler = (
   res.status(errorCode).json({
     error: err.message || "Internal server error",
   });
+  const logMsg = `Server error: ${err.status} ${errorType} | ${err.stack}`;
+  logger.error(logMsg);
 };
