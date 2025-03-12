@@ -115,7 +115,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
         const evaluation = await Evaluation.findById(req.params.id);
 
         if (!evaluation) {
-            return res.status(404).json({ error: "Evaluation not found" });
+            throw new CustomError("Evaluation not found", 404);
         }
 
         return res.json(evaluation);
@@ -131,10 +131,19 @@ router.post(
     async (req: Request, res: Response, next: NextFunction) => {
         try {
             if (!req.file || !req.file.buffer) {
-                return res.status(400).json({ error: "No image file provided" });
+                throw new CustomError("No image file provided", 400);
+            }
+
+            if (!req.body.user) {
+                throw new CustomError("User required", 400);
             }
 
             const optimizedImage = await resizeImage(req.file.buffer);
+
+            let userObject;
+            if (typeof req.body.user === "string") {
+                userObject = JSON.parse(req.body.user)
+            }
 
             const imageForEvaluation = new Image({
                 contentType: req.file.mimetype,
@@ -158,6 +167,7 @@ router.post(
                     materials:
                         req.body.materiaalit || [],
                     condition: req.body.kunto || "Ei tiedossa",
+                    user: userObject,
                 },
             });
 
@@ -171,11 +181,11 @@ router.post(
 );
 
 // Poistoreitti
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
     try {
         const evaluation = await Evaluation.findById(req.params.id);
         if (!evaluation) {
-            return res.status(404).json({ error: "Evaluation not found" });
+            throw new CustomError("Evaluation not found", 404);
         }
 
         await Image.findByIdAndDelete(evaluation.imageId);
@@ -187,7 +197,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
             .json({ message: "Evaluation and related image deleted successfully" });
     } catch (error) {
         console.error("Error deleting evaluation:", error);
-        return res.status(500).json({ error: "Error deleting evaluation" });
+        return next(error);
     }
 });
 
