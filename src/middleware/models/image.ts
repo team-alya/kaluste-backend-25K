@@ -2,12 +2,13 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-const imageSchema = new Schema({
+const image = new Schema({
   contentType: { type: String, required: true },
   image: { type: Buffer, required: true },
+  timeStamp: { type: Date, default: Date.now },
 });
 
-imageSchema.set("toJSON", {
+image.set("toJSON", {
   transform: (_document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString();
     delete returnedObject._id;
@@ -15,5 +16,5 @@ imageSchema.set("toJSON", {
   },
 });
 
-const Image = mongoose.model("Image", imageSchema);
+const Image = mongoose.model("Image", image);
 export default Image;
