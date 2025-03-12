@@ -1,24 +1,26 @@
 import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
-import { finalAnalyze } from "../services/ai/generate-objects";
-import { runImageAnalysisPipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 import { resizeImage } from "../utils/resizeImage";
 import { BaseResponse } from "serpapi";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
-import Evaluation from "@/middleware/models/evaluation";
-import Image from "@/middleware/models/imageSchema";
-import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
+import tempImage from "@/middleware/models/tempImage";
+import {
+  chatgptForBrandAndModel,
+
+} from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
-import SaveImage from "@/middleware/models/imageSave";
-import Evatest from "@/middleware/models/eva";
+
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 import { searchApi } from "@/services/ai/imageAnalyzer/searchApi";
 import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
+import Evaluation from "@/middleware/models/evaluation";
+
 
 //import fs from "fs";
+import Image from "@/middleware/models/image";
 
 const router = express.Router();
-
+/*
 router.post(
   "/",
   imageUploadHandler(),
@@ -89,9 +91,9 @@ router.post(
     }
   }
 );
-
+*/
 router.post(
-  "/imagetest",
+  "/",
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";
@@ -104,7 +106,7 @@ router.post(
       try {
         console.log("trying to save image to db");
 
-        const imageForEvaluation = new Image({
+        const imageForEvaluation = new tempImage({
           contentType: req.file.mimetype,
           image: optimizedImage.buffer,
         });
@@ -153,7 +155,7 @@ router.post(
       if (savedImageId !== "") {
         try {
           console.log("delete the image from db");
-          await Image.findByIdAndDelete(savedImageId);
+          await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
@@ -165,9 +167,9 @@ router.post(
 );
 
 // Find evaluation image by id
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/serpapi/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const image = await Image.findById(req.params.id);
+    const image = await tempImage.findById(req.params.id);
     if (!image) {
       throw new CustomError("Image not found", 404);
     }
@@ -181,11 +183,9 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Find evaluation image by id
-router.get(
-  "/image/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const image = await SaveImage.findById(req.params.id);
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const image = await Image.findById(req.params.id);
 
       if (!image) {
         throw new CustomError("Image not found", 404);
@@ -198,6 +198,72 @@ router.get(
       return next(error);
     }
   }
+);
+
+router.post(
+  "/scraping",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+      try {
+        console.log("trying to save image to db");
+
+        const imageForEvaluation = new tempImage({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
+
+        try {
+          const scrapingApiResponse = await scrapingDog(savedImageId);
+          console.log(scrapingApiResponse);
+
+          const chatgptResponse =
+            await chatgptForBrandAndModel(scrapingApiResponse);
+
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+            },
+          };
+
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
+      } catch (error) {
+        console.error("Image handling failed: ", error);
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await tempImage.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
+    }
+  }
+);
+
+/*
 );
 
 router.post(

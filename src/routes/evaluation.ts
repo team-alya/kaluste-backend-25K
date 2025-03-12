@@ -1,13 +1,13 @@
-import Evaluation from "@/middleware/models/evaluation";
+//import Evaluation from "@/middleware/models/evaluation";
 import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
 import { resizeImage } from "../utils/resizeImage";
 import { CustomError } from "@/types/customError";
-import Evatest from "@/middleware/models/eva";
-import SaveImage from "@/middleware/models/imageSave";
+import Evaluation from "@/middleware/models/evaluation";
+import Image from "@/middleware/models/image";
 
 const router = express.Router();
-
+/*
 router.get("/all", async (_req, res: Response, next: NextFunction) => {
   try {
     const evaluations = await Evaluation.find();
@@ -96,45 +96,39 @@ router.post(
     }
   }
 );
-
+*/
 // Uusi mahdollinen evaluation tyyppi
 
-router.get("/eva/all", async (_req, res: Response) => {
+router.get("/all", async (_req, res: Response, next: NextFunction) => {
   try {
-    const evaluations = await Evatest.find().populate(
-      "imageId",
-      "id contentType"
-    );
+    const evaluations = await Evaluation.find();
 
     return res.json(evaluations);
   } catch (error) {
-    console.error("Error fetching evaluations:", error);
-    return res.status(500).json({ error: "Error fetching evaluations" });
-  }
+
+    return next(new CustomError("Error fetching evaluations", 500));
+}
 });
 
-router.get("/eva/:id", async (req: Request, res: Response) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const evaluation = await Evatest.findById(req.params.id).populate(
-      "imageId",
-      "id contentType"
-    );
-
+    const evaluation = await Evaluation.findById(req.params.id);
+    
     if (!evaluation) {
       return res.status(404).json({ error: "Evaluation not found" });
     }
 
     return res.json(evaluation);
   } catch (error) {
-    console.error("Error fetching evaluation:", error);
-    return res.status(500).json({ error: "Error fetching evaluation" });
-  }
+    console.error("Error fetching image:", error);
+    return next(error);
+}
 });
 
 router.post(
-  "/testsave",
+  "/save",
   imageUploadHandler(),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file || !req.file.buffer) {
         return res.status(400).json({ error: "No image file provided" });
@@ -142,7 +136,7 @@ router.post(
 
       const optimizedImage = await resizeImage(req.file.buffer);
 
-      const imageForEvaluation = new SaveImage({
+      const imageForEvaluation = new Image({
         contentType: req.file.mimetype,
         image: optimizedImage.buffer,
       });
@@ -150,7 +144,7 @@ router.post(
       const savedImage = await imageForEvaluation.save();
       console.log("saved image id: " + savedImage.id);
 
-      const newEvaluation = new Evatest({
+      const newEvaluation = new Evaluation({
         imageId: savedImage.id,
         evaluation: {
           brand: req.body.merkki || "Ei tiedossa",
@@ -162,9 +156,7 @@ router.post(
             height: req.body.mitat?.korkeus || 0,
           },
           materials:
-            req.body.materiaalit?.map((mat: string) => ({
-              material: mat,
-            })) || [],
+            req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
         },
       });
@@ -172,25 +164,23 @@ router.post(
       const savedEvaluation = await newEvaluation.save();
       return res.json(savedEvaluation);
     } catch (error) {
-      console.error("Server error:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      return res.status(500).json({ error: errorMessage });
-    }
+      console.error("Error saving evaluation", error);
+      return next(error);
+  }
   }
 );
 
 // Poistoreitti
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
-    const evaluation = await Evatest.findById(req.params.id);
+    const evaluation = await Evaluation.findById(req.params.id);
     if (!evaluation) {
       return res.status(404).json({ error: "Evaluation not found" });
     }
 
-    await SaveImage.findByIdAndDelete(evaluation.imageId);
+    await Image.findByIdAndDelete(evaluation.imageId);
 
-    await Evatest.findByIdAndDelete(req.params.id);
+    await Evaluation.findByIdAndDelete(req.params.id);
 
     return res
       .status(200)
