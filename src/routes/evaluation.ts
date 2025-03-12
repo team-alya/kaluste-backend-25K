@@ -12,59 +12,59 @@ router.get("/all", async (_req, res: Response, next: NextFunction) => {
   try {
     const evaluations = await Evaluation.find();
 
-        const formattedEvaluations = evaluations.map((evaluation) => ({
-            id: evaluation._id,
-            contentType: evaluation.contentType,
-            timeStamp: evaluation.timeStamp,
-            evaluation: evaluation.evaluation,
-            image:
-                evaluation.image instanceof Buffer
-                    ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
-                    : null,
-        }));
+    const formattedEvaluations = evaluations.map((evaluation) => ({
+      id: evaluation._id,
+      contentType: evaluation.contentType,
+      timeStamp: evaluation.timeStamp,
+      evaluation: evaluation.evaluation,
+      image:
+        evaluation.image instanceof Buffer
+          ? `data:image/jpeg;base64,${evaluation.image.toString("base64")}`
+          : null,
+    }));
 
-        return res.json(formattedEvaluations);
-    } catch (error) {
-
-        return next(new CustomError("Error fetching evaluations", 500));
-    }
+    return res.json(formattedEvaluations);
+  } catch (error) {
+    console.error("Error fetching evaluations:", error);
+    return next(new CustomError("Error fetching evaluations", 500));
+  }
 });
 
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const evaluation = await Evaluation.findById(req.params.id);
-        if (!evaluation) {
-            throw new CustomError("Evaluation not found", 404);
-        }
-
-        let base64Image = null;
-        if (evaluation.image && evaluation.image.buffer) {
-            base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
-        }
-
-        return res.json({
-            id: evaluation._id,
-            contentType: evaluation.contentType,
-            timeStamp: evaluation.timeStamp,
-            evaluation: evaluation.evaluation,
-            image: base64Image,
-        });
-    } catch (error) {
-        console.error("Error fetching image:", error);
-        return next(error);
+  try {
+    const evaluation = await Evaluation.findById(req.params.id);
+    if (!evaluation) {
+      throw new CustomError("Evaluation not found", 404);
     }
+
+    let base64Image = null;
+    if (evaluation.image && evaluation.image.buffer) {
+      base64Image = `data:image/jpeg;base64,${evaluation.image.toString("base64")}`;
+    }
+
+    return res.json({
+      id: evaluation._id,
+      contentType: evaluation.contentType,
+      timeStamp: evaluation.timeStamp,
+      evaluation: evaluation.evaluation,
+      image: base64Image,
+    });
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return next(error);
+  }
 });
 
 router.post(
-    "/save",
-    imageUploadHandler(),
-    async (req: Request, res: Response) => {
-        try {
-            if (!req.file || !req.file.buffer) {
-                throw new CustomError("No image file provided", 400);
-            }
+  "/save",
+  imageUploadHandler(),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file || !req.file.buffer) {
+        throw new CustomError("No image file provided", 400);
+      }
 
-            const optimizedImage = await resizeImage(req.file.buffer);
+      const optimizedImage = await resizeImage(req.file.buffer);
 
       const newEvaluation = new Evaluation({
         contentType: req.file.mimetype,
@@ -182,7 +182,9 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     await Evaluation.findByIdAndDelete(req.params.id);
 
-    return res.status(200).json({ message: "Evaluation and related image deleted successfully" });
+    return res
+      .status(200)
+      .json({ message: "Evaluation and related image deleted successfully" });
   } catch (error) {
     console.error("Error deleting evaluation:", error);
     return res.status(500).json({ error: "Error deleting evaluation" });
@@ -190,4 +192,3 @@ router.delete("/:id", async (req: Request, res: Response) => {
 });
 
 export default router;
-

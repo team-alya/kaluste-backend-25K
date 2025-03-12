@@ -6,9 +6,17 @@ import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import tempImage from "@/middleware/models/tempImage";
 import {
   chatgptForBrandAndModel,
-  chatgptRestOfAnalysis,
+
 } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
+
+import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
+import { searchApi } from "@/services/ai/imageAnalyzer/searchApi";
+import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
+import Evaluation from "@/middleware/models/evaluation";
+
+
+//import fs from "fs";
 import Image from "@/middleware/models/image";
 
 const router = express.Router();
@@ -111,6 +119,7 @@ router.post(
           console.log("pass the id to serpapi");
           const serpApiResponse: BaseResponse = await serpapi(savedImageId);
 
+          console.log("pass the serpapi response to chatgpt");
           const [chatgptResponse, restGptAnalysis] = await Promise.all([
             chatgptForBrandAndModel(serpApiResponse),
             chatgptRestOfAnalysis(optimizedImage.buffer),
@@ -178,19 +187,22 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await Image.findById(req.params.id);
 
-    if (!image) {
-      throw new CustomError("Image not found", 404);
-    }
+      if (!image) {
+        throw new CustomError("Image not found", 404);
+      }
 
-    res.setHeader("Content-Type", image.contentType);
-    return res.send(image.image);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(error)
+      res.setHeader("Content-Type", image.contentType);
+      return res.send(image.image);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(error);
+    }
   }
-});
+);
 
 /*
+);
+
 router.post(
   "/saveimage",
   imageUploadHandler(),
@@ -223,12 +235,11 @@ router.post(
               width: 0,
               height: 0,
             },
-            materials:
-              [],
+            materials: [],
             condition: "Ei tiedossa",
           },
         });
-  
+
         const savedEvaluation = await newEvaluation.save();
 
         //await Image.findByIdAndDelete(savedImage.id);
@@ -248,6 +259,130 @@ router.post(
   }
 );
 
+router.post(
+  "/search",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+      try {
+        console.log("trying to save image to db");
+
+        const imageForEvaluation = new Image({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
+
+        try {
+          const searchApiResponse = await searchApi(savedImageId);
+
+          const chatgptResponse =
+            await chatgptForBrandAndModel(searchApiResponse);
+
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+            },
+          };
+
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
+      } catch (error) {
+        console.error("Image handling failed: ", error);
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
+    }
+  }
+);
+
+router.post(
+  "/scraping",
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    let savedImageId: string = "";
+    try {
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      const optimizedImage = await resizeImage(req.file.buffer);
+      try {
+        console.log("trying to save image to db");
+
+        const imageForEvaluation = new Image({
+          contentType: req.file.mimetype,
+          image: optimizedImage.buffer,
+        });
+
+        const savedImage = await imageForEvaluation.save();
+        savedImageId = savedImage.id;
+        console.log("saved image successfully, id: " + savedImageId);
+
+        try {
+          const scrapingApiResponse = await scrapingDog(savedImageId);
+          console.log(scrapingApiResponse);
+
+          const chatgptResponse =
+            await chatgptForBrandAndModel(scrapingApiResponse);
+
+          const evaluation = {
+            evaluation: {
+              brand: chatgptResponse.merkki || "Ei tiedossa",
+              model: chatgptResponse.malli || "Ei tiedossa",
+            },
+          };
+
+          return res.json(evaluation);
+        } catch (error) {
+          console.error("Pipeline error:", error);
+          return next(error);
+        }
+      } catch (error) {
+        console.error("Image handling failed: ", error);
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Server error:", error);
+      return next(error);
+    } finally {
+      if (savedImageId !== "") {
+        try {
+          console.log("delete the image from db");
+          await Image.findByIdAndDelete(savedImageId);
+          console.log("Image deleted successfully.");
+        } catch (deleteError) {
+          console.error("Error deleting image:", deleteError);
+          next(deleteError);
+        }
+      }
+    }
+  }
+);
 
 
 // For testing serpApi:
@@ -385,4 +520,3 @@ router.get("/all", async (_req, res: Response) => {
 */
 
 export default router;
-

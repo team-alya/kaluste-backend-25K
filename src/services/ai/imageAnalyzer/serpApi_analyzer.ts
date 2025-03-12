@@ -12,8 +12,7 @@ export const serpapi = async (id: string): Promise<BaseResponse> => {
     {
       engine: "google_lens",
       url: `https://kalustearvio-25k-backend-kalustearvio-25k.2.rahtiapp.fi/api/image/serpapi/${id}`, //https://kalustearvio.fi/api/image/i432dw3
-      api_key: serpApi_Key,
-      country: "fi",
+      api_key: serpApi_Key
     },
     (json) => {
       return json["visual_matches"];

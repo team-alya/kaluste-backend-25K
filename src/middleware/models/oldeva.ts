@@ -3,26 +3,23 @@
 const { Schema } = mongoose;
 
 export const kuntoOptions = [
-    "Uusi",
-    "Erinomainen",
-    "Hyvä",
-    "Kohtalainen",
-    "Huono",
-    "Ei tiedossa",
-  ] as const;
+  "Uusi",
+  "Erinomainen",
+  "Hyvä",
+  "Kohtalainen",
+  "Huono",
+  "Ei tiedossa",
+] as const;
 
-const evaluationSchema = new Schema ({
-    image: {
-        type: Buffer,
-        required: true,
-    },
-    contentType: {
-        type: String,
-        required: true,
-      },
+const evaSchema = new Schema ({
     timeStamp: { 
         type: Date, 
         default: Date.now 
+    },
+    imageId: {
+        type: Schema.Types.ObjectId,
+        ref: "SaveImage",
+        required: true,
     },
     evaluation: {
         brand: {
@@ -75,7 +72,7 @@ const evaluationSchema = new Schema ({
     },
 });
 
-evaluationSchema.set('toJSON', {
+evaSchema.set('toJSON', {
     transform: (_document, returnedObject) => {
         returnedObject.id = returnedObject._id.toString()
         delete returnedObject._id
