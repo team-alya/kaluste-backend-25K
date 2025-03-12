@@ -11,9 +11,7 @@ import {
 import { CustomError } from "@/types/customError";
 
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
-import { searchApi } from "@/services/ai/imageAnalyzer/searchApi";
 import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
-import Evaluation from "@/middleware/models/evaluation";
 
 
 //import fs from "fs";
