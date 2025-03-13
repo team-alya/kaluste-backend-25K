@@ -99,7 +99,17 @@ router.post(
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
       }
+
+      if (!req.body.user) {
+        throw new CustomError("User required", 400);
+      }
+
       const optimizedImage = await resizeImage(req.file.buffer);
+
+      let userObject;
+      if (typeof req.body.user === "string") {
+        userObject = JSON.parse(req.body.user);
+      }
 
       try {
         console.log("trying to save image to db");
@@ -135,6 +145,7 @@ router.post(
               },
               materials: restGptAnalysis.materiaalit || [],
               condition: restGptAnalysis.kunto || "Ei tiedossa",
+              user: userObject,
             },
           };
           return res.json(evaluation);
@@ -185,17 +196,17 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await Image.findById(req.params.id);
 
-      if (!image) {
-        throw new CustomError("Image not found", 404);
-      }
-
-      res.setHeader("Content-Type", image.contentType);
-      return res.send(image.image);
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      return next(error);
+    if (!image) {
+      throw new CustomError("Image not found", 404);
     }
+
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return next(error);
   }
+}
 );
 
 router.post(
@@ -298,6 +309,7 @@ router.post(
             },
             materials: [],
             condition: "Ei tiedossa",
+            user: userObject,
           },
         });
 
