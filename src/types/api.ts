@@ -1,8 +1,9 @@
 import { Request } from "express";
-import { FurnitureDetails } from "./schemas";
+import { NewFurnitureDetails, SerpApiResult } from "./schemas";
 
 export interface FurnitureDetailsRequest extends Request {
   body: {
-    furnitureDetails: FurnitureDetails;
+    furnitureDetails: NewFurnitureDetails;
+    serpApiResult: SerpApiResult;
   };
 }

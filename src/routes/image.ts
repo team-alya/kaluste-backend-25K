@@ -108,7 +108,7 @@ router.post(
 
       let userObject;
       if (typeof req.body.user === "string") {
-        userObject = JSON.parse(req.body.user);
+        userObject = req.body.user;
       }
 
       try {
