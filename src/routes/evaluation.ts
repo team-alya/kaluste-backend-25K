@@ -5,6 +5,8 @@ import { resizeImage } from "../utils/resizeImage";
 import { CustomError } from "@/types/customError";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/image";
+import ExpertSelectedBrand from "@/middleware/models/expertSelectedBrand";
+import { expensiveBrands } from "../services/ai/prompts/expensiveBrands";
 
 const router = express.Router();
 /*
@@ -125,6 +127,45 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     }
 });
 
+router.post("/check", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+      const { merkki: brand, malli: model } = req.body;
+
+      if (!brand || !model) {
+          return res.status(400).json({ error: "Brand and model are required" });
+        }
+
+      const existingBrand = await ExpertSelectedBrand.findOne({ brand, model });
+
+      if (existingBrand) {
+          return res.status(200).json({
+              message: "Brändi ja malli tarvitaan varastoon.",
+              required: true,
+              reason: "brand_in_stock",
+          });
+        } 
+   
+      if (expensiveBrands.includes(brand)) {
+          return res.status(200).json({
+              message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
+              required: true,
+              reason: "expensive_brand",
+          });
+        }
+    
+      return res.status(200).json({
+            message: "Varastoon lisääminen ei ole tarpeen. Haluatko silti lisätä sen?",
+            required: false,
+            reason: "not_required",
+        });
+
+  } catch (error) {
+      console.error("Error checking model", error);
+      return next(error);
+  }
+});
+
+
 router.post(
     "/save",
     imageUploadHandler(),
@@ -142,7 +183,7 @@ router.post(
 
             let userObject;
             if (typeof req.body.user === "string") {
-                userObject = JSON.parse(req.body.user)
+                userObject = req.body.user
             }
 
             const imageForEvaluation = new Image({
