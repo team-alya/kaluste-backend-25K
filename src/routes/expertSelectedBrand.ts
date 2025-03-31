@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express';
 import ExpertSelectedBrand from '@/middleware/models/expertSelectedBrand';
+import { verifyToken } from '@/middleware/auth';
+import { requiredRole } from '@/middleware/roleChecker';
 
 const router = express.Router();
 
 // Löytöreitti
-router.get('/all', async (_req: Request, res: Response) => {
+router.get('/all', verifyToken,
+  requiredRole("customer", "expert", "admin"), async (_req: Request, res: Response) => {
   try {
     const brands = await ExpertSelectedBrand.find();
     res.status(200).json(brands);
@@ -14,7 +17,8 @@ router.get('/all', async (_req: Request, res: Response) => {
 });
 
 // Lisäysreitti
-router.post('/add', async (req: Request, res: Response) => {
+router.post('/add', verifyToken,
+  requiredRole("expert", "admin"), async (req: Request, res: Response) => {
   const { brand, model } = req.body;
 
   try {
@@ -27,7 +31,8 @@ router.post('/add', async (req: Request, res: Response) => {
 });
 
 // Poistoreitti
-router.delete('/delete/:id', async (req: Request, res: Response) => {
+router.delete('/delete/:id', verifyToken,
+  requiredRole("expert", "admin"), async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
@@ -43,7 +48,8 @@ router.delete('/delete/:id', async (req: Request, res: Response) => {
 });
 
 // Muokkausreitti
-router.put('/update/:id', async (req: Request, res: Response) => {
+router.put('/update/:id', verifyToken,
+  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response) => {
   const { id } = req.params;
   const { brand, model } = req.body;
 
