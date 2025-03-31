@@ -8,6 +8,9 @@ import Image from "@/middleware/models/image";
 import { verifyToken } from "@/middleware/auth";
 import { requiredRole } from "@/middleware/roleChecker";
 
+import multer from "multer";
+const upload = multer();
+
 const router = express.Router();
 /*
 router.get("/all", async (_req, res: Response, next: NextFunction) => {
@@ -199,5 +202,40 @@ router.delete("/:id", async (req: Request, res: Response, next: NextFunction) =>
     return next(error);
   }
 });
+
+// Evaluationin päivitysreitti
+router.put("/:id", upload.none(), async (req: Request, res: Response, next: NextFunction) => {
+  try{
+    const evaluation = await Evaluation.findById(req.params.id)
+    if (!evaluation) {
+      return res.status(404).json({ error: "Evaluation not found" });
+    }
+    
+    try {
+      console.log("req.body: ", req.body);
+      const newEvaluation = {
+        brand: req.body.merkki || evaluation?.evaluation?.brand,
+        model: req.body.malli || evaluation?.evaluation?.model,
+        color: req.body.vari || evaluation?.evaluation?.color,
+        dimensions: {
+          length: req.body.mitat?.pituus || evaluation?.evaluation?.dimensions?.length,
+          width: req.body.mitat?.leveys || evaluation?.evaluation?.dimensions?.width,
+          height: req.body.mitat?.korkeus || evaluation?.evaluation?.dimensions?.height,
+        },
+        materials:
+          req.body.materiaalit || evaluation?.evaluation?.materials,
+        condition: req.body.kunto || evaluation?.evaluation?.condition,
+      }
+
+      const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation }, { new: true });
+      return res.json(updatedEvaluation);
+    } catch (error) {
+      return next(error)
+    }
+  } catch (error) {
+    console.error("Error updating evaluation:", error);
+    return next(error);
+  }
+})
 
 export default router;
