@@ -1,4 +1,4 @@
-import sharp from "sharp";
+//import sharp from "sharp";
 
 /**
  * Resize and optimize image for LLM API requirements.
@@ -8,6 +8,7 @@ import sharp from "sharp";
  * - Format: JPEG
  */
 
+/*
 export const resizeImage = async (imageBuffer: Buffer) => {
   const sharpImage = sharp(imageBuffer);
   const metadata = await sharpImage.metadata();
@@ -64,5 +65,32 @@ export const resizeImage = async (imageBuffer: Buffer) => {
       format: "jpeg",
       megapixels: (width * height) / 1000000,
     },
+  };
+};
+*/
+
+/**
+ * Mock function to replace `resizeImage` when `sharp` is not available.
+ * This function simulates resizing and returns a dummy response.
+ */
+
+export const resizeImage = async (imageBuffer: Buffer) => {
+  console.log("Mock resizeImage called");
+
+  // Simulate metadata
+  const metadata = {
+    width: 1024,
+    height: 768,
+    format: "jpeg",
+    megapixels: (1024 * 768) / 1000000,
+  };
+
+  // Simulate optimized buffer (return the original buffer for simplicity)
+  const optimizedBuffer = imageBuffer;
+
+  return {
+    buffer: optimizedBuffer,
+    base64: optimizedBuffer.toString("base64"),
+    metadata,
   };
 };
