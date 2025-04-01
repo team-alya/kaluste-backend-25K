@@ -135,11 +135,17 @@ router.post("/check", async (req: Request, res: Response, next: NextFunction) =>
           return res.status(400).json({ error: "Brand and model are required" });
         }
 
-      const existingBrand = await ExpertSelectedBrand.findOne({ brand, model });
+        const query: any = {};
+        if (brand) query.brand = brand;
+        if (model) query.model = model;
+
+        const existingBrand = await ExpertSelectedBrand.findOne({
+          $or: [{ brand }, { model }]
+          });
 
       if (existingBrand) {
           return res.status(200).json({
-              message: "Brändi ja malli tarvitaan varastoon.",
+              message: "Brändi ja/tai malli tarvitaan varastoon.",
               required: true,
               reason: "brand_in_stock",
           });
