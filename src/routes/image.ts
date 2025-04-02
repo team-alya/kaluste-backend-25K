@@ -114,8 +114,7 @@ router.get("/serpapi/:id", async (req: Request, res: Response, next: NextFunctio
 });
 
 // Find evaluation image by id
-router.get("/:id", verifyToken,
-  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await Image.findById(req.params.id);
 

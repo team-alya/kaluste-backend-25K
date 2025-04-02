@@ -1,10 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import ExpertSelectedBrand from '@/middleware/models/expertSelectedBrand';
-
 import { verifyToken } from '@/middleware/auth';
 import { requiredRole } from '@/middleware/roleChecker';
 import { CustomError } from '@/types/customError';
-
 
 const router = express.Router();
 
@@ -48,7 +46,7 @@ router.post('/add', verifyToken,
 
 // Poistoreitti
 
-router.delete('/delete/:id'), verifyToken,
+router.delete('/delete/:id', verifyToken,
   requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
 
   const { id } = req.params;
@@ -64,7 +62,7 @@ router.delete('/delete/:id'), verifyToken,
     next(error);
 
   }
-};
+});
 
 // Muokkausreitti
 router.put('/update/:id', verifyToken,
