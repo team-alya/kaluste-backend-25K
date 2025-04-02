@@ -1,68 +1,101 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import ExpertSelectedBrand from '@/middleware/models/expertSelectedBrand';
+
 import { verifyToken } from '@/middleware/auth';
 import { requiredRole } from '@/middleware/roleChecker';
+import { CustomError } from '@/types/customError';
+
 
 const router = express.Router();
 
 // Löytöreitti
+
 router.get('/all', verifyToken,
   requiredRole("customer", "expert", "admin"), async (_req: Request, res: Response) => {
+
   try {
     const brands = await ExpertSelectedBrand.find();
     res.status(200).json(brands);
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving brands', error });
+    next(new CustomError("Error retrieving brands", 500));
   }
 });
 
 // Lisäysreitti
+
 router.post('/add', verifyToken,
-  requiredRole("expert", "admin"), async (req: Request, res: Response) => {
+  requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
   const { brand, model } = req.body;
 
+  if (!brand?.trim() && !model?.trim()) {
+    return res.status(400).json({ message: 'Either brand or model must be provided and cannot be empty' });
+  }
+
   try {
-    const newBrand = new ExpertSelectedBrand({ brand, model });
-    await newBrand.save();
-    res.status(201).json({ message: 'Brand added successfully', brand: newBrand });
+    const newEntry = new ExpertSelectedBrand({});
+    if (brand?.trim()) newEntry.brand = brand.trim();
+    if (model?.trim()) newEntry.model = model.trim();
+
+    await newEntry.save();
+    return res.status(201).json({ message: 'Entry added successfully', entry: newEntry });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding brand', error });
+
+    return next(new CustomError("Error while adding brands", 500));
+
   }
 });
 
 // Poistoreitti
+
 router.delete('/delete/:id', verifyToken,
-  requiredRole("expert", "admin"), async (req: Request, res: Response) => {
+  requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
+router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunction) => {
+
   const { id } = req.params;
 
   try {
-    const deletedBrand = await ExpertSelectedBrand.findByIdAndDelete(id);
-    if (deletedBrand) {
-      res.status(200).json({ message: 'Brand deleted successfully' });
+    const deletedEntry = await ExpertSelectedBrand.findByIdAndDelete(id);
+    if (deletedEntry) {
+      res.status(200).json({ message: 'Entry deleted successfully' });
     } else {
-      res.status(404).json({ message: 'Brand not found' });
+      throw new CustomError("Brand not found", 404);
     }
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting brand', error });
+    next(error);
+
   }
 });
 
 // Muokkausreitti
 router.put('/update/:id', verifyToken,
-  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response) => {
+  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
   const { id } = req.params;
   const { brand, model } = req.body;
 
   try {
-    const updatedBrand = await ExpertSelectedBrand.findByIdAndUpdate(id, { brand, model }, { new: true });
-    if (updatedBrand) {
-      res.status(200).json({ message: 'Brand updated successfully', brand: updatedBrand });
-    } else {
-      res.status(404).json({ message: 'Brand not found' });
+
+    const existingEntry = await ExpertSelectedBrand.findById(id);
+    if (!existingEntry) {
+        throw new CustomError('Entry not found', 404);
     }
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating brand', error });
-  }
+
+    const updateData: any = {};
+    if (brand !== undefined && existingEntry.brand !== undefined) updateData.brand = brand;
+    if (model !== undefined && existingEntry.model !== undefined) updateData.model = model;
+
+    if (Object.keys(updateData).length === 0) {
+        throw new CustomError('No valid fields to update', 400);
+    }
+
+    const updatedEntry = await ExpertSelectedBrand.findByIdAndUpdate(id, updateData, { new: true });
+    return res.status(200).json({ message: 'Entry updated successfully', entry: updatedEntry });
+} catch (error) {
+    return next(error);
+}
+
 });
 
 export default router;

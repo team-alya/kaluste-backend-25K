@@ -83,6 +83,7 @@ export const priceAnalysisSchema = z.object({
     .describe("Alin realistinen myyntihinta euroina"),
 });
 
+/*
 export const priceEstimationSchema = z.object({
   korkein_hinta: z.number().describe("Suurin realistinen myyntihinta euroina"),
 
@@ -136,6 +137,23 @@ export const priceEstimationSchema = z.object({
     })
     .describe("Arvio markkinatilanteesta"),
 });
+*/
+
+export const priceEstimationSchema = z.object({
+
+  suositus_hinta: z
+    .number()
+    .min(0)
+    .max(1000000)
+    .describe("Suositeltu optimaalinen myyntihinta euroina"),
+
+  perustelu: z
+    .array(z.string())
+    .describe(
+      "Erittäin lyhyt ja ytimekäs perustelu hinta-arviolle. Älä toista perustiedoissa mainittuja asioita. Älä mainitse Perplexityä-analyysin lähteenäsi."
+    ),
+});
+
 
 export type PriceEstimation = z.infer<typeof priceEstimationSchema>;
 export type PriceAnalysis = z.infer<typeof priceAnalysisSchema>;

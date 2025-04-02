@@ -6,5 +6,6 @@ export const corsOptions = {
     "https://localhost:5173",
     "http://localhost:3000",
     "https://localhost:4173",
+    "https://kaluste-frontend-25k-git-kalustearvio-25k.2.rahtiapp.fi/,"
   ],
 };
