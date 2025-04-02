@@ -4,12 +4,22 @@ import mongoose, { Schema } from 'mongoose';
 const expertSelectedBrandSchema = new Schema({
   brand: {
     type: String,
-    required: true,
+    required: false,
   },
   model: {
     type: String,
-    required: true,
+    required: false,
   },
+  }, 
+  {
+    validateBeforeSave: true
+  });
+
+expertSelectedBrandSchema.pre('save', function (next) {
+  if (!this.brand && !this.model) {
+    return next(new Error('Either brand or model must be provided'));
+  }
+  next();
 });
 
 
