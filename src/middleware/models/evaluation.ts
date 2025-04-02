@@ -66,10 +66,10 @@ const evaluationSchema = new Schema({
             required: false,  // Voi olla pakollinen tai ei
             default: "Ei tiedossa"  // Oletusarvo, jos ei anneta arvoa
         },
-        user: {
-            type: Object,
-            required: true,
-        },
+    },
+    user: {
+        type: Object,
+        required: true,
     },
 });
 

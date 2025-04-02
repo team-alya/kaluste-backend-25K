@@ -4,17 +4,18 @@ import { resizeImage } from "../utils/resizeImage";
 import { CustomError } from "@/types/customError";
 import Evaluation from "@/middleware/models/evaluation";
 import Image from "@/middleware/models/image";
+import ExpertSelectedBrand from "@/middleware/models/expertSelectedBrand";
+import { expensiveBrands } from "../services/ai/prompts/expensiveBrands";
 import path from "path";
 import fs from "fs";
 import { verifyToken } from "@/middleware/auth";
 import { requiredRole } from "@/middleware/roleChecker";
 import multer from "multer";
 const upload = multer();
-
-
 const router = express.Router();
 
-router.get("/all", async (_req, res: Response, next: NextFunction) => {
+router.get("/all", verifyToken,
+  requiredRole("customer", "expert", "admin"), async (_req, res: Response, next: NextFunction) => {
   try {
     const evaluations = await Evaluation.find();
 
@@ -25,7 +26,8 @@ router.get("/all", async (_req, res: Response, next: NextFunction) => {
   }
 });
 
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", verifyToken,
+  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const evaluation = await Evaluation.findById(req.params.id);
 
@@ -42,6 +44,8 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 
 router.post(
   "/save",
+  verifyToken,
+  requiredRole("customer", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -49,16 +53,11 @@ router.post(
         throw new CustomError("No image file provided", 400);
       }
 
-      if (!req.body.user) {
+      if (!req.user) {
         throw new CustomError("User required", 400);
       }
 
       const optimizedImage = await resizeImage(req.file.buffer);
-
-      let userObject;
-      if (typeof req.body.user === "string") {
-        userObject = JSON.parse(req.body.user)
-      }
 
       const imageForEvaluation = new Image({
         contentType: req.file.mimetype,
@@ -79,11 +78,10 @@ router.post(
             width: req.body.mitat?.leveys || 0,
             height: req.body.mitat?.korkeus || 0,
           },
-          materials:
-            req.body.materiaalit || [],
+          materials: req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
-          user: userObject,
         },
+        user: req.user?.username,
       });
 
       const savedEvaluation = await newEvaluation.save();
@@ -95,35 +93,10 @@ router.post(
   }
 );
 
-router.get("/all", async (_req, res: Response, next: NextFunction) => {
-  try {
-    const evaluations = await Evaluation.find();
-
-    return res.json(evaluations);
-  } catch (error) {
-
-    return next(new CustomError("Error fetching evaluations", 500));
-  }
-});
-
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const evaluation = await Evaluation.findById(req.params.id);
-
-    if (!evaluation) {
-      throw new CustomError("Evaluation not found", 404);
-    }
-
-    return res.json(evaluation);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(error);
-  }
-});
-
 // tietokannan nollaus, oletuksena vain lokaalisti toimisi
 
-router.post("/reset", async (_req, res: Response, next: NextFunction) => {
+router.post("/reset", verifyToken,
+  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
 
     await Evaluation.deleteMany({});
@@ -139,42 +112,42 @@ router.post("/reset", async (_req, res: Response, next: NextFunction) => {
 
     const newEvaluationsData = [
       {
-        merkki: "Asko",
-        malli: "112",
+        merkki: "Pohjanmaan Kaluste",
+        malli: "Ei tiedossa",
         vari: "Ruskea",
-        mitat: { pituus: 100, leveys: 100, korkeus: 100 },
-        materiaalit: ["puu", "nahka"],
+        mitat: { pituus: 200, leveys: 90, korkeus: 90 },
+        materiaalit: ["nahka"],
         kunto: "Huono",
       },
       {
-        merkki: "Asko",
+        merkki: "Pohjanmaan Fantasy",
         malli: "Sohva",
         vari: "Beige",
-        mitat: { pituus: 90, leveys: 90, korkeus: 90 },
+        mitat: { pituus: 180, leveys: 90, korkeus: 85 },
         materiaalit: ["kangas", "puu"],
-        kunto: "Erinomainen",
+        kunto: "Hyvä",
       },
       {
-        merkki: "Artek",
-        malli: "Nojatuoli",
-        vari: "Oliivinvihreä",
-        mitat: { pituus: 120, leveys: 60, korkeus: 75 },
+        merkki: "Asko",
+        malli: "Ei tiedossa",
+        vari: "Vihreä",
+        mitat: { pituus: 80, leveys: 70, korkeus: 100 },
+        materiaalit: ["puu", "kangas"],
+        kunto: "Kohtalainen",
+      },
+      {
+        merkki: "Ei tiedossa",
+        malli: "Kustavilainen",
+        vari: "Vaalea puu",
+        mitat: { pituus: 40, leveys: 40, korkeus: 90 },
         materiaalit: ["puu", "kangas"],
         kunto: "Hyvä",
       },
       {
-        merkki: "Vanhainen",
-        malli: "Tuoli",
-        vari: "Valkoinen",
-        mitat: { pituus: 200, leveys: 80, korkeus: 40 },
-        materiaalit: ["puu", "kangas"],
-        kunto: "Hyvä",
-      },
-      {
-        merkki: "Vanhanen",
-        malli: "Tuoli",
-        vari: "Valkoinen",
-        mitat: { pituus: 150, leveys: 70, korkeus: 80 },
+        merkki: "Laitalan Kaluste",
+        malli: "Talonpoikaisrokokoo",
+        vari: "Vaalea, koristeellinen",
+        mitat: { pituus: 45, leveys: 45, korkeus: 90 },
         materiaalit: ["puu", "kangas"],
         kunto: "Hyvä",
       }
@@ -209,6 +182,7 @@ router.post("/reset", async (_req, res: Response, next: NextFunction) => {
           materials: newEvaluationsData[i].materiaalit || [],
           condition: newEvaluationsData[i].kunto || "Ei tiedossa",
         },
+        user: req.user?.username,
       });
 
       const savedEvaluation = await newEvaluation.save();
@@ -226,7 +200,54 @@ router.post("/reset", async (_req, res: Response, next: NextFunction) => {
   }
 });
 
-  
+
+
+router.post("/check", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+      const { merkki: brand, malli: model } = req.body;
+
+      if (!brand || !model) {
+          return res.status(400).json({ error: "Brand and model are required" });
+        }
+
+        const query: any = {};
+        if (brand) query.brand = brand;
+        if (model) query.model = model;
+
+        const existingBrand = await ExpertSelectedBrand.findOne({
+          $or: [{ brand }, { model }]
+          });
+
+      if (existingBrand) {
+          return res.status(200).json({
+              message: "Brändi ja/tai malli tarvitaan varastoon.",
+              required: true,
+              reason: "brand_in_stock",
+          });
+        } 
+   
+      if (expensiveBrands.includes(brand)) {
+          return res.status(200).json({
+              message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
+              required: true,
+              reason: "expensive_brand",
+          });
+        }
+    
+      return res.status(200).json({
+            message: "Varastoon lisääminen ei ole tarpeen. Haluatko silti lisätä sen?",
+            required: false,
+            reason: "not_required",
+        });
+
+  } catch (error) {
+      console.error("Error checking model", error);
+      return next(error);
+  }
+});
+
+
+
 router.post(
   "/save",
   verifyToken,
@@ -275,12 +296,15 @@ router.post(
     } catch (error) {
       console.error("Error saving evaluation", error);
       return next(error);
+
     }
   }
 );
 
+
 // Poistoreitti
-router.delete("/:id", async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/:id", verifyToken,
+  requiredRole("admin"),  async (req: Request, res: Response, next: NextFunction) => {
   try {
     const evaluation = await Evaluation.findById(req.params.id);
     if (!evaluation) {
@@ -301,7 +325,8 @@ router.delete("/:id", async (req: Request, res: Response, next: NextFunction) =>
 });
 
 // Evaluationin päivitysreitti
-router.put("/:id", upload.none(), async (req: Request, res: Response, next: NextFunction) => {
+router.put("/:id", upload.none(), verifyToken,
+requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
   try{
     const evaluation = await Evaluation.findById(req.params.id)
     if (!evaluation) {
