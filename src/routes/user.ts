@@ -1,13 +1,13 @@
 import express, { NextFunction, Request, Response } from "express";
 import User from "../middleware/models/user";
-import { checkAdmin } from "../middleware/roleChecker";
+import { requiredRole } from "../middleware/roleChecker";
 import { CustomError } from "@/types/customError";
 import { verifyToken } from "@/middleware/auth";
 
 const router = express.Router();
 
 // Admin muokkaa käyttäjän roolia
-router.put("/:id/role", verifyToken, checkAdmin, async (req: Request, res: Response, next: NextFunction) => {
+router.put("/:id/role", verifyToken, requiredRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
