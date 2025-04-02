@@ -11,7 +11,7 @@ const router = express.Router();
 // Löytöreitti
 
 router.get('/all', verifyToken,
-  requiredRole("customer", "expert", "admin"), async (_req: Request, res: Response) => {
+  requiredRole("customer", "expert", "admin"), async (_req: Request, res: Response, next: NextFunction) => {
 
   try {
     const brands = await ExpertSelectedBrand.find();
@@ -48,10 +48,8 @@ router.post('/add', verifyToken,
 
 // Poistoreitti
 
-router.delete('/delete/:id', verifyToken,
+router.delete('/delete/:id'), verifyToken,
   requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
-
-router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunction) => {
 
   const { id } = req.params;
 
@@ -66,7 +64,7 @@ router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunct
     next(error);
 
   }
-});
+};
 
 // Muokkausreitti
 router.put('/update/:id', verifyToken,
