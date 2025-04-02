@@ -1,20 +1,22 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import ExpertSelectedBrand from '@/middleware/models/expertSelectedBrand';
+import { CustomError } from '@/types/customError';
 
 const router = express.Router();
 
 // Löytöreitti
-router.get('/all', async (_req: Request, res: Response) => {
-    try {
-      const brands = await ExpertSelectedBrand.find();
-      res.status(200).json(brands);
-    } catch (error) {
-      res.status(500).json({ message: 'Error retrieving brands and models', error });
-    }
-  });
+
+router.get('/all', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const brands = await ExpertSelectedBrand.find();
+    res.status(200).json(brands);
+  } catch (error) {
+    next(new CustomError("Error retrieving brands", 500));
+  }
+});
 
 // Lisäysreitti
-router.post('/add', async (req: Request, res: Response) => {
+router.post('/add', async (req: Request, res: Response, next: NextFunction) => {
   const { brand, model } = req.body;
 
   if (!brand?.trim() && !model?.trim()) {
@@ -29,12 +31,14 @@ router.post('/add', async (req: Request, res: Response) => {
     await newEntry.save();
     return res.status(201).json({ message: 'Entry added successfully', entry: newEntry });
   } catch (error) {
-    return res.status(500).json({ message: 'Error adding entry', error });
+
+    next(new CustomError("Error while adding brands", 500));
+
   }
 });
 
 // Poistoreitti
-router.delete('/delete/:id', async (req: Request, res: Response) => {
+router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
 
   try {
@@ -42,22 +46,24 @@ router.delete('/delete/:id', async (req: Request, res: Response) => {
     if (deletedEntry) {
       res.status(200).json({ message: 'Entry deleted successfully' });
     } else {
-      res.status(404).json({ message: 'Entry not found' });
+      throw new CustomError("Brand not found", 404);
     }
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting entry', error });
+    next(error);
+
   }
 });
 
 // Muokkausreitti
-router.put('/update/:id', async (req: Request, res: Response) => {
+router.put('/update/:id', async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   const { brand, model } = req.body;
 
   try {
+
     const existingEntry = await ExpertSelectedBrand.findById(id);
     if (!existingEntry) {
-        return res.status(404).json({ message: 'Entry not found' });
+        throw new CustomError('Entry not found', 404);
     }
 
     const updateData: any = {};
@@ -65,14 +71,15 @@ router.put('/update/:id', async (req: Request, res: Response) => {
     if (model !== undefined && existingEntry.model !== undefined) updateData.model = model;
 
     if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ message: 'No valid fields to update' });
+        throw new CustomError('No valid fields to update', 400);
     }
 
     const updatedEntry = await ExpertSelectedBrand.findByIdAndUpdate(id, updateData, { new: true });
     return res.status(200).json({ message: 'Entry updated successfully', entry: updatedEntry });
 } catch (error) {
-    return res.status(500).json({ message: 'Error updating entry', error });
+    next(error);
 }
+
 });
 
 export default router;

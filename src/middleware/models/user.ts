@@ -3,13 +3,13 @@ import bcrypt from "bcryptjs";
 
 const { Schema } = mongoose;
 
-interface UserDocument extends Document {
+export interface UserDocument extends Document {
   username: string;
   password: string;
   email: string;
   firstname: string;
   lastname: string;
-  role: "customer";
+  role: string;
   comparePassword(password: string): Promise<boolean>;
 }
 
@@ -38,7 +38,7 @@ const userSchema = new Schema<UserDocument>({
   },
   role: {
     type: String,
-    enum: ["customer"], // voi lisätä muu rooli
+    enum: ["customer", "admin", "expert"], // voi lisätä muu rooli
     default: "customer",
   },
 });

@@ -9,6 +9,7 @@ export const kuntoOptions = [
     "Kohtalainen",
     "Huono",
     "Ei tiedossa",
+    
 ] as const;
 
 const evaluationSchema = new Schema({
@@ -18,7 +19,7 @@ const evaluationSchema = new Schema({
     },
     imageId: {
         type: Schema.Types.ObjectId,
-        ref: "SaveImage",
+        ref: "Image",
         required: true,
     },
     evaluation: {
@@ -67,7 +68,7 @@ const evaluationSchema = new Schema({
         },
         user: {
             type: Object,
-            required: true
+            required: true,
         },
     },
 });
