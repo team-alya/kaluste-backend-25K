@@ -6,10 +6,10 @@ const router = express.Router();
 
 router.post("/", async (req: FurnitureDetailsRequest, res: Response) => {
   try {
-    const { furnitureDetails } = req.body;
+    const { furnitureDetails, serpApiResult } = req.body;
     // const response = getMockPriceData();
     // return res.status(200).json(response);
-    const priceEstimate = await analyzePrice(furnitureDetails);
+    const priceEstimate = await analyzePrice(furnitureDetails, serpApiResult);
 
     return res.json(priceEstimate);
   } catch (error) {

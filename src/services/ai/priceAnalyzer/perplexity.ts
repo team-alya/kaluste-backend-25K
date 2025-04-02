@@ -1,7 +1,8 @@
 import {
-  FurnitureDetails,
+  NewFurnitureDetails,
   PriceEstimation,
   priceEstimationSchema,
+  SerpApiResult,
 } from "@/types/schemas";
 import { openai } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -18,7 +19,7 @@ const perplexity = createOpenAICompatible({
   baseURL: "https://api.perplexity.ai/",
 });
 
-async function perplexityPrizeAnalyse(furnitureDetails: FurnitureDetails) {
+async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, serpApiResult: SerpApiResult) {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("fi-FI", {
     year: "numeric",
@@ -33,8 +34,8 @@ async function perplexityPrizeAnalyse(furnitureDetails: FurnitureDetails) {
       Analyysi tehty: ${formattedDate}
 
       TUOTETIEDOT:
-      - Merkki: ${furnitureDetails.merkki}
-      - Malli: ${furnitureDetails.malli}
+      - Merkki: ${serpApiResult.merkki}
+      - Malli: ${serpApiResult.malli}
       - Väri: ${furnitureDetails.vari}
       - Mitat: ${furnitureDetails.mitat.pituus}x${furnitureDetails.mitat.leveys}x${furnitureDetails.mitat.korkeus} cm
       - Materiaalit: ${furnitureDetails.materiaalit.join(", ")}
@@ -52,7 +53,7 @@ async function perplexityPrizeAnalyse(furnitureDetails: FurnitureDetails) {
 }
 
 // Jos brändi ei tiedossa
-async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: FurnitureDetails) {
+async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurnitureDetails) {
   const result = await generateText({
     model: perplexity("sonar"),
     prompt: `
@@ -87,8 +88,9 @@ async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: FurnitureDet
 }
 
 async function generatePriceObject(
-  furnitureDetails: FurnitureDetails,
+  furnitureDetails: NewFurnitureDetails,
   perplexityAnalysis: string,
+  serpApiResult: SerpApiResult,
 ) {
   const result = await generateObject({
     model: openai("gpt-4o-2024-11-20"),
@@ -102,8 +104,8 @@ async function generatePriceObject(
     `,
     prompt: dedent`
     TUOTETIEDOT:
-    - Merkki: ${furnitureDetails.merkki}
-    - Malli: ${furnitureDetails.malli}
+    - Merkki: ${serpApiResult.merkki}
+    - Malli: ${serpApiResult.malli}
     - Väri: ${furnitureDetails.vari}
     - Mitat: ${furnitureDetails.mitat.pituus}x${furnitureDetails.mitat.leveys}x${furnitureDetails.mitat.korkeus} cm
     - Materiaalit: ${furnitureDetails.materiaalit.join(", ")}
@@ -126,18 +128,20 @@ async function generatePriceObject(
 }
 
 export const analyzePrice = async (
-  furnitureDetails: FurnitureDetails,
+  furnitureDetails: NewFurnitureDetails,
+  serpApiResult: SerpApiResult,
 ): Promise<PriceEstimation> => {
   try {
     const perplexityAnalysis =
-        furnitureDetails.merkki === "Ei tiedossa"
+        serpApiResult.merkki === "Ei tiedossa"
           ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
           
-          : await perplexityPrizeAnalyse(furnitureDetails);
+          : await perplexityPrizeAnalyse(furnitureDetails, serpApiResult);
     
     const result = await generatePriceObject(
       furnitureDetails,
       perplexityAnalysis,
+      serpApiResult
     );
 
     return result;

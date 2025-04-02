@@ -4,10 +4,12 @@ node_modules/
 # Environment
 .env
 .env.local
+.DS_Store
 
 # Logs
 *.log
 npm-debug.log*
+logs
 
 .vscode
 

@@ -16,6 +16,8 @@ import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
 
 //import fs from "fs";
 import Image from "@/middleware/models/image";
+import { verifyToken } from "@/middleware/auth";
+import { requiredRole } from "@/middleware/roleChecker";
 
 const router = express.Router();
 /*
@@ -92,14 +94,27 @@ router.post(
 */
 router.post(
   "/",
+  verifyToken,
+  requiredRole("customer", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";
     try {
+      console.log("Started analysis at: " + new Date().toLocaleString());
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
       }
+
+      if (!req.user) {
+        throw new CustomError("User required", 400);
+      }
+
       const optimizedImage = await resizeImage(req.file.buffer);
+
+      let userObject = req.user;
+      // if (typeof req.body.user === "string") {
+      //   userObject = req.body.user;
+      // }
 
       try {
         console.log("trying to save image to db");
@@ -135,6 +150,7 @@ router.post(
               },
               materials: restGptAnalysis.materiaalit || [],
               condition: restGptAnalysis.kunto || "Ei tiedossa",
+              user: userObject,
             },
           };
           return res.json(evaluation);
@@ -155,6 +171,7 @@ router.post(
           console.log("delete the image from db");
           await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
+          console.log("Analysis finished at: " + new Date().toLocaleString());
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
           next(deleteError);
@@ -185,17 +202,17 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const image = await Image.findById(req.params.id);
 
-      if (!image) {
-        throw new CustomError("Image not found", 404);
-      }
-
-      res.setHeader("Content-Type", image.contentType);
-      return res.send(image.image);
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      return next(error);
+    if (!image) {
+      throw new CustomError("Image not found", 404);
     }
+
+    res.setHeader("Content-Type", image.contentType);
+    return res.send(image.image);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return next(error);
   }
+}
 );
 
 router.post(
@@ -205,7 +222,7 @@ router.post(
     let savedImageId: string = "";
     try {
       if (!req.file || !req.file.buffer) {
-        return res.status(400).json({ error: "No image file provided" });
+        throw new CustomError("Image file not provided", 400);
       }
       const optimizedImage = await resizeImage(req.file.buffer);
       try {
@@ -298,6 +315,7 @@ router.post(
             },
             materials: [],
             condition: "Ei tiedossa",
+            user: userObject,
           },
         });
 

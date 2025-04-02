@@ -9,16 +9,17 @@ export const kuntoOptions = [
     "Kohtalainen",
     "Huono",
     "Ei tiedossa",
-  ] as const;
+    
+] as const;
 
-const evaluationSchema = new Schema ({
-    timeStamp: { 
-        type: Date, 
-        default: Date.now 
+const evaluationSchema = new Schema({
+    timeStamp: {
+        type: Date,
+        default: Date.now
     },
     imageId: {
         type: Schema.Types.ObjectId,
-        ref: "SaveImage",
+        ref: "Image",
         required: true,
     },
     evaluation: {
@@ -64,6 +65,10 @@ const evaluationSchema = new Schema ({
             enum: kuntoOptions,  // TÄRKEÄ KORJAUS: enum määritellään näin
             required: false,  // Voi olla pakollinen tai ei
             default: "Ei tiedossa"  // Oletusarvo, jos ei anneta arvoa
+        },
+        user: {
+            type: Object,
+            required: true,
         },
     },
 });
