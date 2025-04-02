@@ -32,7 +32,7 @@ router.post('/add', async (req: Request, res: Response, next: NextFunction) => {
     return res.status(201).json({ message: 'Entry added successfully', entry: newEntry });
   } catch (error) {
 
-    next(new CustomError("Error while adding brands", 500));
+    return next(new CustomError("Error while adding brands", 500));
 
   }
 });
@@ -77,7 +77,7 @@ router.put('/update/:id', async (req: Request, res: Response, next: NextFunction
     const updatedEntry = await ExpertSelectedBrand.findByIdAndUpdate(id, updateData, { new: true });
     return res.status(200).json({ message: 'Entry updated successfully', entry: updatedEntry });
 } catch (error) {
-    next(error);
+    return next(error);
 }
 
 });
