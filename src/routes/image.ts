@@ -222,7 +222,7 @@ router.post(
     let savedImageId: string = "";
     try {
       if (!req.file || !req.file.buffer) {
-        return res.status(400).json({ error: "No image file provided" });
+        throw new CustomError("Image file not provided", 400);
       }
       const optimizedImage = await resizeImage(req.file.buffer);
       try {
