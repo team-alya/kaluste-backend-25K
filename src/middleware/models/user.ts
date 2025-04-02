@@ -38,7 +38,7 @@ const userSchema = new Schema<UserDocument>({
   },
   role: {
     type: String,
-    enum: ["customer"], // voi lisätä muu rooli
+    enum: ["customer", "admin", "expert"], // voi lisätä muu rooli
     default: "customer",
   },
 });

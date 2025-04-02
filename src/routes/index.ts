@@ -10,6 +10,7 @@ import registerRouter from "./register";
 import evaluationRouter from "./evaluation";
 import placesRouter from "./location";
 import expertSelectedBrand from "./expertSelectedBrand";
+import userRoutes from "./user";
 
 const router = Router();
 
@@ -28,6 +29,6 @@ router.use("/login", loginRouter);
 router.use("/evaluation", evaluationRouter);
 router.use("/location", placesRouter);
 router.use("/expertSelectedBrand", expertSelectedBrand);
-
+router.use("/users", userRoutes);
 
 export default router;
