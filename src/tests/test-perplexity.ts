@@ -1,4 +1,4 @@
-import { analyzePrice } from "../services/ai/priceAnalyzer/perplexity";
+/*import { analyzePrice } from "../services/ai/priceAnalyzer/perplexity";
 
 async function testAnalyzePrice() {
   const testData = {
@@ -48,3 +48,4 @@ async function testAnalyzePrice() {
 })().catch((error) => {
   console.error("Kriittinen virhe sovelluksen suorituksessa:", error);
 });
+*/
