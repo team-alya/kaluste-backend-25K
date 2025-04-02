@@ -1,4 +1,4 @@
-import { FurnitureDetails, PriceEstimation } from "../types/schemas";
+/*import { FurnitureDetails, PriceEstimation } from "../types/schemas";
 
 export const getMockFurnitureData = (): FurnitureDetails => {
   return {
@@ -39,3 +39,4 @@ export const getMockPriceData = (): PriceEstimation => {
     },
   };
 };
+*/
