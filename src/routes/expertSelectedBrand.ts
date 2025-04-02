@@ -1,12 +1,18 @@
 import express, { Request, Response, NextFunction } from 'express';
 import ExpertSelectedBrand from '@/middleware/models/expertSelectedBrand';
+
+import { verifyToken } from '@/middleware/auth';
+import { requiredRole } from '@/middleware/roleChecker';
 import { CustomError } from '@/types/customError';
+
 
 const router = express.Router();
 
 // Löytöreitti
 
-router.get('/all', async (_req: Request, res: Response, next: NextFunction) => {
+router.get('/all', verifyToken,
+  requiredRole("customer", "expert", "admin"), async (_req: Request, res: Response) => {
+
   try {
     const brands = await ExpertSelectedBrand.find();
     res.status(200).json(brands);
@@ -16,7 +22,10 @@ router.get('/all', async (_req: Request, res: Response, next: NextFunction) => {
 });
 
 // Lisäysreitti
-router.post('/add', async (req: Request, res: Response, next: NextFunction) => {
+
+router.post('/add', verifyToken,
+  requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
   const { brand, model } = req.body;
 
   if (!brand?.trim() && !model?.trim()) {
@@ -38,7 +47,12 @@ router.post('/add', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Poistoreitti
+
+router.delete('/delete/:id', verifyToken,
+  requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
 router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunction) => {
+
   const { id } = req.params;
 
   try {
@@ -55,7 +69,9 @@ router.delete('/delete/:id', async (req: Request, res: Response, next: NextFunct
 });
 
 // Muokkausreitti
-router.put('/update/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/update/:id', verifyToken,
+  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+
   const { id } = req.params;
   const { brand, model } = req.body;
 
