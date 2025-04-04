@@ -98,20 +98,23 @@ router.post(
 );
 
 // Find evaluation image by id for serpApi search
-router.get("/serpapi/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const image = await tempImage.findById(req.params.id);
-    if (!image) {
-      throw new CustomError("Image not found", 404);
-    }
+router.get(
+  "/serpapi/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const image = await tempImage.findById(req.params.id);
+      if (!image) {
+        throw new CustomError("Image not found", 404);
+      }
 
-    res.setHeader("Content-Type", image.contentType);
-    return res.send(image.image);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(error);
+      res.setHeader("Content-Type", image.contentType);
+      return res.send(image.image);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(error);
+    }
   }
-});
+);
 
 // Find evaluation image by id
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
@@ -128,8 +131,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     console.error("Error fetching image:", error);
     return next(error);
   }
-}
-);
+});
 
 router.post(
   "/scraping",

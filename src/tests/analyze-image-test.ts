@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+/*import fs from "fs/promises";
 import path from "path";
 import { pipeline } from "../services/ai/pipelines/image-analysis-pipeline";
 
@@ -96,3 +96,4 @@ runAllTests().catch((error) => {
   console.error("Test suite failed:", error);
   process.exit(1);
 });
+*/

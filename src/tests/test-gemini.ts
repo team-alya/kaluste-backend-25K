@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+/*import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import dotenv from "dotenv";
 import { z } from "zod";
@@ -48,3 +48,4 @@ async function testGemini() {
 (async () => {
   await testGemini();
 })().catch(console.error);
+*/

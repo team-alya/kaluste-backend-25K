@@ -6,7 +6,7 @@ import Location from "@/middleware/models/locations";
 dotenv.config();
 
 const router = express.Router();
-const SERPAPI_KEY = process.env.SERPAPI_KEY;
+const SERPAPI_KEY = process.env.SERPAPI_API_KEY;
 
 const findLocations = async (coordinates: string) => {
   const url = `https://serpapi.com/search.json?engine=google_maps&q=Kierrätyskeskus&ll=@${coordinates},12z&api_key=${SERPAPI_KEY}`;
@@ -17,9 +17,8 @@ const findLocations = async (coordinates: string) => {
       name: place.title,
       address: place.address,
       type: place.type,
-      gps_coordinates: place.gps_coordinates
+      gps_coordinates: place.gps_coordinates,
     }));
-
 
     return results;
   } catch (error) {
@@ -36,7 +35,6 @@ router.post("/", async (req: Request, res: Response) => {
   }
 
   try {
-
     const locations = await findLocations(coordinates);
 
     const savedLocations = [];
@@ -51,7 +49,6 @@ router.post("/", async (req: Request, res: Response) => {
       if (existingLocation) {
         console.log(`Location ${location.name} already exists in DB.`);
         savedLocations.push(existingLocation);
-
       } else {
         const newLocation = new Location(location);
         const saved = await newLocation.save();
@@ -60,7 +57,6 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     return res.json({ locations: savedLocations });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Server error" });
