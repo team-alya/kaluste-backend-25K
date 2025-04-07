@@ -1,16 +1,14 @@
 import express, { NextFunction, Request, Response } from "express";
 import { imageUploadHandler } from "../middleware/middleware";
 import { resizeImage } from "../utils/resizeImage";
-import { BaseResponse } from "serpapi";
-import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import tempImage from "@/middleware/models/tempImage";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { CustomError } from "@/types/customError";
-import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
 import Image from "@/middleware/models/image";
 import { verifyToken } from "@/middleware/auth";
 import { requiredRole } from "@/middleware/roleChecker";
+import { processImageAndAnalyze } from "@/services/ai/imageAnalyzer/processImage";
 
 const router = express.Router();
 
@@ -20,74 +18,29 @@ router.post(
   requiredRole("customer", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
-    let savedImageId: string = "";
+    let savedImageId = "";
+
     try {
-      console.log("Started analysis at: " + new Date().toLocaleString());
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
       }
-
       if (!req.user) {
         throw new CustomError("User required", 400);
       }
 
-      const optimizedImage = await resizeImage(req.file.buffer);
+      const { evaluation, priceEstimation, savedImageId: id } =
+        await processImageAndAnalyze(req.file);
+      savedImageId = id;
 
-      try {
-        console.log("trying to save image to db");
-
-        const imageForEvaluation = new tempImage({
-          contentType: req.file.mimetype,
-          image: optimizedImage.buffer,
-        });
-
-        const savedImage = await imageForEvaluation.save();
-        savedImageId = savedImage.id;
-        console.log("saved image successfully, id: " + savedImageId);
-
-        try {
-          console.log("pass the id to serpapi");
-          const serpApiResponse: BaseResponse = await serpapi(savedImageId);
-
-          console.log("pass the serpapi response to chatgpt");
-          const [chatgptResponse, restGptAnalysis] = await Promise.all([
-            chatgptForBrandAndModel(serpApiResponse),
-            chatgptRestOfAnalysis(optimizedImage.buffer),
-          ]);
-
-          const evaluation = {
-            evaluation: {
-              brand: chatgptResponse.merkki || "Ei tiedossa",
-              model: chatgptResponse.malli || "Ei tiedossa",
-              color: restGptAnalysis.vari || "Ei tiedossa",
-              dimensions: {
-                length: restGptAnalysis.mitat.pituus || 0,
-                width: restGptAnalysis.mitat.leveys || 0,
-                height: restGptAnalysis.mitat.korkeus || 0,
-              },
-              materials: restGptAnalysis.materiaalit || [],
-              condition: restGptAnalysis.kunto || "Ei tiedossa",
-            },
-          };
-          return res.json(evaluation);
-        } catch (error) {
-          console.error("Pipeline error:", error);
-          return next(error);
-        }
-      } catch (error) {
-        console.error("Image handling failed: ", error);
-        return next(error);
-      }
+      return res.json({ evaluation, priceEstimation });
     } catch (error) {
-      console.error("Server error:", error);
+      console.error("Pipeline error:", error);
       return next(error);
     } finally {
-      if (savedImageId !== "") {
+      if (savedImageId) {
         try {
-          console.log("delete the image from db");
           await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
-          console.log("Analysis finished at: " + new Date().toLocaleString());
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
           next(deleteError);
