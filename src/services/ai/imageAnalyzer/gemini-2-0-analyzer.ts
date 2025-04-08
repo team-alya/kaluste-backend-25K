@@ -1,4 +1,4 @@
-import { FurnitureDetails, furnitureDetailsSchema } from "@/types/schemas";
+/*import { FurnitureDetails, furnitureDetailsSchema } from "@/types/schemas";
 import { AIAnalyzer } from "@/types/services";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
@@ -56,3 +56,4 @@ export class GeminiAnalyzer implements AIAnalyzer {
   //   });
   // }
 }
+*/

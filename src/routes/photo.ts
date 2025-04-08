@@ -1,6 +1,6 @@
-import express, { Request, Response } from 'express';
-import { GPT4Analyzer } from '../services/ai/photoAnalyzer';
-import { imageUploadHandler, imageValidator } from '../middleware/middleware';
+import express, { Request, Response } from "express";
+import { GPT4Analyzer } from "../services/ai/imageAnalyzer/photoAnalyzer";
+import { imageUploadHandler, imageValidator } from "../middleware/middleware";
 
 const router = express.Router();
 const gpt4Analyzer = new GPT4Analyzer();
@@ -15,10 +15,10 @@ router.post(
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const photo = req.file.buffer; 
+      const photo = req.file.buffer;
 
       const analysisResult = await gpt4Analyzer.analyzePhotoQuality(photo);
-      console.log("Photo analysis result:", analysisResult); 
+      console.log("Photo analysis result:", analysisResult);
 
       return res.json(analysisResult);
     } catch (error) {

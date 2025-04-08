@@ -1,5 +1,3 @@
-import dedent from "dedent";
-
 export const imgAnalyzeSystemMsg = `
 Olet huonekaluasiantuntija, joka erikoistuu huonekalujen tunnistamiseen ja arviointiin.
 
@@ -69,33 +67,5 @@ Pohjoismaiset valmistajat:
 - Arper (Italia): Esimerkiksi Catifa-tuolit, Kiik-sarja.
 - FDB Møbler (Tanska): Klassikkotuolit kuten J48 ja C35.
 - Jysk (Tanska): Edulliset huonekalut ja sisustustuotteet, kuten huonekalusarjat kuten Vedde, Stouby ja Silkeborg.
-
-`;
-
-export const getSystemPrompt = (furnitureContext: any) => dedent`
-  Olet avulias assistentti joka neuvoo käytetyn kalusteen myymisessä, lahjoittamisessa, kierrättämisessä ja kunnostamisessa.
-  ${
-    furnitureContext
-      ? dedent`
-    Käsiteltävän huonekalun tiedot:
-    - Merkki: ${furnitureContext.merkki}
-    - Malli: ${furnitureContext.malli}
-    - Väri: ${furnitureContext["vari"]}
-    - Kunto: ${furnitureContext.kunto}
-    - Materiaalit: ${furnitureContext.materiaalit.join(", ")}
-    - Mitat: ${furnitureContext.mitat.pituus}x${furnitureContext.mitat.leveys}x${furnitureContext.mitat.korkeus} cm
-
-    Käytä näitä tietoja vastauksissasi kun ne ovat relevantteja.
-  `
-      : ""
-  }
-`;
-
-export const imgAnalyzeSystemMsgGemini1_5 = `
-Olet huonekaluasiantuntija, joka erikoistuu huonekalujen tunnistamiseen ja arviointiin.
-
-Tiedät paljon erityisesti suomalaisista ja pohjoismaisista huonekaluvalmistajista ja heidän tuotteistaan.
-
-Älä arvaa, jos et ole varma huonekalun merkistä, mallista tai kunnosta. Palauta 'Ei tiedossa' jos et tiedä jotain tietoa varmasti.
 
 `;

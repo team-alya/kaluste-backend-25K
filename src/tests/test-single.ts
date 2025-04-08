@@ -1,4 +1,4 @@
-import { Gemini_1_5_Analyzer } from "@/services/ai/imageAnalyzer/gemini-1.5-analyzer";
+/*import { Gemini_1_5_Analyzer } from "@/services/ai/imageAnalyzer/gemini-1.5-analyzer";
 import dotenv from "dotenv";
 import fs from "fs/promises";
 import path from "path";
@@ -61,3 +61,4 @@ async function testSingleImage() {
 testSingleImage().catch((error) => {
   console.error("Test failed:", error);
 });
+*/

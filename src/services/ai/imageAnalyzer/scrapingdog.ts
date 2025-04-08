@@ -11,7 +11,7 @@ interface VisualMatch {
 export const scrapingDog = async (id: string) => {
   const params = {
     api_key: apikey,
-    url: `https://kalustearvio-25k-backend-kalustearvio-25k.2.rahtiapp.fi/api/image/${id}`,
+    url: `https://kalustearvio-25k-backend-kalustearvio-25k.2.rahtiapp.fi/api/image/serpapi/${id}`,
     country: "fi",
   };
 
