@@ -81,6 +81,7 @@ router.post(
           materials: req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
         },
+        priceEstimation: req.body.priceEstimation,
         user: req.user?.username,
       });
 
@@ -245,61 +246,6 @@ router.post("/check", async (req: Request, res: Response, next: NextFunction) =>
       return next(error);
   }
 });
-
-
-
-router.post(
-  "/save",
-  verifyToken,
-  requiredRole("customer", "admin"),
-  imageUploadHandler(),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      if (!req.file || !req.file.buffer) {
-        throw new CustomError("No image file provided", 400);
-      }
-
-      if (!req.user) {
-        throw new CustomError("User required", 400);
-      }
-
-      const optimizedImage = await resizeImage(req.file.buffer);
-
-      const imageForEvaluation = new Image({
-        contentType: req.file.mimetype,
-        image: optimizedImage.buffer,
-      });
-
-      const savedImage = await imageForEvaluation.save();
-      console.log("saved image id: " + savedImage.id);
-
-      const newEvaluation = new Evaluation({
-        imageId: savedImage.id,
-        evaluation: {
-          brand: req.body.merkki || "Ei tiedossa",
-          model: req.body.malli || "Ei tiedossa",
-          color: req.body.vari || "Ei tiedossa",
-          dimensions: {
-            length: req.body.mitat?.pituus || 0,
-            width: req.body.mitat?.leveys || 0,
-            height: req.body.mitat?.korkeus || 0,
-          },
-          materials:
-            req.body.materiaalit || [],
-          condition: req.body.kunto || "Ei tiedossa",
-          user: req.user
-        },
-      });
-
-      const savedEvaluation = await newEvaluation.save();
-      return res.json(savedEvaluation);
-    } catch (error) {
-      console.error("Error saving evaluation", error);
-      return next(error);
-
-    }
-  }
-);
 
 
 // Poistoreitti

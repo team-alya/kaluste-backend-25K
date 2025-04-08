@@ -67,6 +67,16 @@ const evaluationSchema = new Schema({
             default: "Ei tiedossa"  // Oletusarvo, jos ei anneta arvoa
         },
     },
+    priceEstimation: {
+        suositus_hinta: {
+          type: Number,
+          required: false,
+        },
+        perustelu: {
+          type: [String],
+          required: false,
+        }
+      },
     user: {
         type: Object,
         required: true,
