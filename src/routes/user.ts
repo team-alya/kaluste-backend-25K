@@ -18,15 +18,17 @@ router.put("/:id/role", verifyToken, requiredRole("admin"), async (req: Request,
       throw new CustomError("Invalid role specified.", 400);
     }
 
-    
+    console.log("Trying to find user by id...")
     const user = await User.findById(id);
     if (!user) {
       throw new CustomError("User not found.", 404);
     }
 
+    console.log("User found, updating role...")
     user.role = role;
     await user.save();
 
+    console.log("User role updated successfully");
     return res.status(200).json({ message: "Role updated successfully.", user });
   } catch (error) {
     console.error("Error updating user role:", error);
