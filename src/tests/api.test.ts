@@ -13,6 +13,8 @@ describe('GET /api/ping', () => {
   });
 });
 
+
+// Login api test --------------------------------------------------------------------------------------------------
 describe('POST /api/login', () => {
   it('should return a token when login is successful', async () => {
     await mongoose.connect(config.mongodb.uri);
@@ -41,6 +43,21 @@ describe('POST /api/login', () => {
 
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe("Wrong username or password.");
+  });
+});
+
+// Image api tests ------------------------------------------------------------------------------------------------------------------
+describe('POST /api/image', () => {
+  it('should fail without an image file and wrong token', async () => {
+    const token = "fake-token";
+
+    const res = await request(app)
+      .post('/api/image')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toBe("Invalid token");
   });
 });
 
