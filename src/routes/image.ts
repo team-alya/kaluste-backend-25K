@@ -25,10 +25,6 @@ router.post(
         throw new CustomError("No image file provided", 400);
       }
 
-      if (!req.user) {
-        throw new CustomError("User required", 400);
-      }
-
       const optimizedImage = await resizeImage(req.file.buffer);
 
       try {
