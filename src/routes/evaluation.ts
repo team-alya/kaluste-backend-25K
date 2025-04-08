@@ -25,30 +25,23 @@ router.get("/all", async (_req, res: Response, next: NextFunction) => {
   }
 });
 
-router.get(
-  "/:id",
-  verifyToken,
-  requiredRole("customer", "expert", "admin"),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const evaluation = await Evaluation.findById(req.params.id);
+router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const evaluation = await Evaluation.findById(req.params.id);
 
-      if (!evaluation) {
-        throw new CustomError("Evaluation not found", 404);
-      }
-
-      return res.json(evaluation);
-    } catch (error) {
-      console.error("Error fetching image:", error);
-      return next(error);
+    if (!evaluation) {
+      throw new CustomError("Evaluation not found", 404);
     }
+
+    return res.json(evaluation);
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    return next(error);
   }
-);
+});
 
 router.post(
   "/save",
-  verifyToken,
-  requiredRole("customer", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -256,8 +249,6 @@ router.post(
 // Poistoreitti
 router.delete(
   "/:id",
-  verifyToken,
-  requiredRole("admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const evaluation = await Evaluation.findById(req.params.id);
@@ -283,8 +274,6 @@ router.delete(
 router.put(
   "/:id",
   upload.none(),
-  verifyToken,
-  requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const evaluation = await Evaluation.findById(req.params.id);
