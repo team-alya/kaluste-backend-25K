@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Älyä-hankkeessa KalusteArvio-projektin palvelin ja tekoälyliittymät",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "lint": "eslint .",
     "dev": "ts-node-dev -r tsconfig-paths/register src/index.ts",
