@@ -9,13 +9,15 @@ import { CustomError } from "@/types/customError";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 import { scrapingDog } from "@/services/ai/imageAnalyzer/scrapingdog";
 import Image from "@/middleware/models/image";
-//import { verifyToken } from "@/middleware/auth";
-//import { requiredRole } from "@/middleware/roleChecker";
+import { verifyToken } from "@/middleware/auth";
+import { requiredRole } from "@/middleware/roleChecker";
 
 const router = express.Router();
 
 router.post(
   "/",
+  verifyToken,
+  requiredRole("customer", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";

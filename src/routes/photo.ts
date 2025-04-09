@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import { GPT4Analyzer } from "../services/ai/imageAnalyzer/photoAnalyzer";
 import { imageUploadHandler, imageValidator } from "../middleware/middleware";
+import { requiredRole } from "@/middleware/roleChecker";
+import { verifyToken } from "@/middleware/auth";
 
 const router = express.Router();
 const gpt4Analyzer = new GPT4Analyzer();
@@ -8,6 +10,8 @@ const gpt4Analyzer = new GPT4Analyzer();
 router.post(
   "/",
   imageUploadHandler(),
+  verifyToken,
+  requiredRole("customer", "expert", "admin"),
   imageValidator,
   async (req: Request, res: Response) => {
     try {
