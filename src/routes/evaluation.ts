@@ -14,34 +14,46 @@ import multer from "multer";
 const upload = multer();
 const router = express.Router();
 
-router.get("/all", async (_req, res: Response, next: NextFunction) => {
-  try {
-    const evaluations = await Evaluation.find();
+router.get(
+  "/all",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  async (_req, res: Response, next: NextFunction) => {
+    try {
+      const evaluations = await Evaluation.find();
 
-    return res.json(evaluations);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(new CustomError("Error fetching evaluations", 500));
-  }
-});
-
-router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const evaluation = await Evaluation.findById(req.params.id);
-
-    if (!evaluation) {
-      throw new CustomError("Evaluation not found", 404);
+      return res.json(evaluations);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(new CustomError("Error fetching evaluations", 500));
     }
-
-    return res.json(evaluation);
-  } catch (error) {
-    console.error("Error fetching image:", error);
-    return next(error);
   }
-});
+);
+
+router.get(
+  "/:id",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const evaluation = await Evaluation.findById(req.params.id);
+
+      if (!evaluation) {
+        throw new CustomError("Evaluation not found", 404);
+      }
+
+      return res.json(evaluation);
+    } catch (error) {
+      console.error("Error fetching image:", error);
+      return next(error);
+    }
+  }
+);
 
 router.post(
   "/save",
+  verifyToken,
+  requiredRole("customer", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -249,6 +261,8 @@ router.post(
 // Poistoreitti
 router.delete(
   "/:id",
+  verifyToken,
+  requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const evaluation = await Evaluation.findById(req.params.id);
@@ -273,6 +287,8 @@ router.delete(
 // Evaluationin päivitysreitti
 router.put(
   "/:id",
+  verifyToken,
+  requiredRole("expert", "admin"),
   upload.none(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
