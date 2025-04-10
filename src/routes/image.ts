@@ -17,7 +17,7 @@ const router = express.Router();
 router.post(
   "/",
   verifyToken,
-  requiredRole("customer", "admin"),
+  requiredRole("customer", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";
@@ -25,10 +25,6 @@ router.post(
       console.log("Started analysis at: " + new Date().toLocaleString());
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
-      }
-
-      if (!req.user) {
-        throw new CustomError("User required", 400);
       }
 
       const optimizedImage = await resizeImage(req.file.buffer);

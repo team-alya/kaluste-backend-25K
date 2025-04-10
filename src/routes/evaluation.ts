@@ -14,8 +14,11 @@ import multer from "multer";
 const upload = multer();
 const router = express.Router();
 
-router.get("/all", verifyToken,
-  requiredRole("customer", "expert", "admin"), async (_req, res: Response, next: NextFunction) => {
+router.get(
+  "/all",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  async (_req, res: Response, next: NextFunction) => {
     try {
       console.log("Searching for evaluations...")
       const evaluations = await Evaluation.find();
@@ -26,10 +29,14 @@ router.get("/all", verifyToken,
       console.error("Error fetching image:", error);
       return next(new CustomError("Error fetching evaluations", 500));
     }
-  });
+  }
+);
 
-router.get("/:id", verifyToken,
-  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.get(
+  "/:id",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       console.log("GET evaluation with id...")
       const evaluation = await Evaluation.findById(req.params.id);
@@ -44,12 +51,13 @@ router.get("/:id", verifyToken,
       console.error("Error fetching image:", error);
       return next(error);
     }
-  });
+  }
+);
 
 router.post(
   "/save",
   verifyToken,
-  requiredRole("customer", "admin"),
+  requiredRole("customer", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -100,10 +108,12 @@ router.post(
 
 // tietokannan nollaus, oletuksena vain lokaalisti toimisi
 
-router.post("/reset", verifyToken,
-  requiredRole("customer", "expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.post(
+  "/reset",
+  verifyToken,
+  requiredRole("customer", "expert", "admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-
       await Evaluation.deleteMany({});
       await Image.deleteMany({});
 
@@ -155,7 +165,7 @@ router.post("/reset", verifyToken,
           mitat: { pituus: 45, leveys: 45, korkeus: 90 },
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
-        }
+        },
       ];
 
       const savedEvaluations = [];
@@ -198,67 +208,67 @@ router.post("/reset", verifyToken,
         message: "Database reset complete with new evaluations",
         evaluations: savedEvaluations,
       });
-
     } catch (error) {
       console.error("Error resetting database:", error);
       return next(error);
     }
-  });
-
-
-
-router.post("/check", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { merkki: brand, malli: model } = req.body;
-
-    if (!brand || !model) {
-      throw new CustomError("Brand and model are required", 400);
-    }
-
-    const query: any = {};
-    if (brand) query.brand = brand;
-    if (model) query.model = model;
-
-    console.log("Checking if brand or model are wanted...")
-    const existingBrand = await ExpertSelectedBrand.findOne({
-      $or: [{ brand }, { model }]
-    });
-
-    if (existingBrand) {
-      return res.status(200).json({
-        message: "Brändi ja/tai malli tarvitaan varastoon.",
-        required: true,
-        reason: "brand_in_stock",
-      });
-    }
-
-    if (expensiveBrands.includes(brand)) {
-      return res.status(200).json({
-        message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
-        required: true,
-        reason: "expensive_brand",
-      });
-    }
-
-    return res.status(200).json({
-      message: "Varastoon lisääminen ei ole tarpeen. Haluatko silti lisätä sen?",
-      required: false,
-      reason: "not_required",
-    });
-
-  } catch (error) {
-    console.error("Error checking model", error);
-    return next(error);
   }
-});
-
-
+);
 
 router.post(
-  "/save",
+  "/check",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { merkki: brand, malli: model } = req.body;
+
+      if (!brand || !model) {
+        throw new CustomError("Brand and model are required", 400);
+      }
+
+      const query: any = {};
+      if (brand) query.brand = brand;
+      if (model) query.model = model;
+
+      console.log("Checking if brand or model are wanted...")
+      const existingBrand = await ExpertSelectedBrand.findOne({
+        $or: [{ brand }, { model }]
+      });
+
+      if (existingBrand) {
+        return res.status(200).json({
+          message: "Brändi ja/tai malli tarvitaan varastoon.",
+          required: true,
+          reason: "brand_in_stock",
+        });
+      }
+
+      if (expensiveBrands.includes(brand)) {
+        return res.status(200).json({
+          message:
+            "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
+          required: true,
+          reason: "expensive_brand",
+        });
+      }
+
+      return res.status(200).json({
+        message:
+          "Varastoon lisääminen ei ole tarpeen. Haluatko silti lisätä sen?",
+        required: false,
+        reason: "not_required",
+      });
+    } catch (error) {
+      console.error("Error checking model", error);
+      return next(error);
+    }
+  }
+);
+
+// Poistoreitti
+router.delete(
+  "/:id",
   verifyToken,
-  requiredRole("customer", "admin"),
-  imageUploadHandler(),
+  requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file || !req.file.buffer) {
@@ -331,7 +341,8 @@ router.delete("/:id", verifyToken,
       console.error("Error deleting evaluation:", error);
       return next(error);
     }
-  });
+  }
+);
 
 // Evaluationin päivitysreitti
 router.put("/:id", upload.none(), verifyToken,
