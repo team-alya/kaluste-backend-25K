@@ -98,12 +98,15 @@ router.get(
   "/serpapi/:id",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("GET image with id...");
       const image = await tempImage.findById(req.params.id);
+
       if (!image) {
         throw new CustomError("Image not found", 404);
       }
 
       res.setHeader("Content-Type", image.contentType);
+      console.log("Image found, sending to serpAPI")
       return res.send(image.image);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -115,6 +118,7 @@ router.get(
 // Find evaluation image by id
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("GET image with id...");
     const image = await Image.findById(req.params.id);
 
     if (!image) {
@@ -122,6 +126,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.setHeader("Content-Type", image.contentType);
+    console.log("Image found, sending image")
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);

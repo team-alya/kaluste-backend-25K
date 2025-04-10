@@ -20,8 +20,10 @@ router.get(
   requiredRole("expert", "admin"),
   async (_req, res: Response, next: NextFunction) => {
     try {
+      console.log("Searching for evaluations...")
       const evaluations = await Evaluation.find();
 
+      console.log("Evaluations found, sending results...");
       return res.json(evaluations);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -36,12 +38,14 @@ router.get(
   requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("GET evaluation with id...")
       const evaluation = await Evaluation.findById(req.params.id);
 
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
 
+      console.log("Evaluation found, returning found evaluation")
       return res.json(evaluation);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -93,6 +97,7 @@ router.post(
       });
 
       const savedEvaluation = await newEvaluation.save();
+      console.log("Evaluation saved successfully, returning saved evaluation")
       return res.json(savedEvaluation);
     } catch (error) {
       console.error("Error saving evaluation", error);
@@ -217,15 +222,16 @@ router.post(
       const { merkki: brand, malli: model } = req.body;
 
       if (!brand || !model) {
-        return res.status(400).json({ error: "Brand and model are required" });
+        throw new CustomError("Brand and model are required", 400);
       }
 
       const query: any = {};
       if (brand) query.brand = brand;
       if (model) query.model = model;
 
+      console.log("Checking if brand or model are wanted...")
       const existingBrand = await ExpertSelectedBrand.findOne({
-        $or: [{ brand }, { model }],
+        $or: [{ brand }, { model }]
       });
 
       if (existingBrand) {
@@ -258,6 +264,7 @@ router.post(
   }
 );
 
+
 // Poistoreitti
 router.delete(
   "/:id",
@@ -265,15 +272,17 @@ router.delete(
   requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id);
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
-
+      console.log("Evaluation found, deleting image and evaluation...")
       await Image.findByIdAndDelete(evaluation.imageId);
 
       await Evaluation.findByIdAndDelete(req.params.id);
 
+      console.log("Evaluation and related image deleted successfully")
       return res
         .status(200)
         .json({ message: "Evaluation and related image deleted successfully" });
@@ -292,11 +301,13 @@ router.put(
   upload.none(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const evaluation = await Evaluation.findById(req.params.id);
+      console.log("Trying to find evaluation by id...")
+      const evaluation = await Evaluation.findById(req.params.id)
       if (!evaluation) {
-        return res.status(404).json({ error: "Evaluation not found" });
+        throw new CustomError("Evaluation not found", 404);
       }
 
+      console.log("Evaluation found, starting update...")
       try {
         console.log("req.body: ", req.body);
         const newEvaluation = {
@@ -304,34 +315,68 @@ router.put(
           model: req.body.malli || evaluation?.evaluation?.model,
           color: req.body.vari || evaluation?.evaluation?.color,
           dimensions: {
-            length:
-              req.body.mitat?.pituus ||
-              evaluation?.evaluation?.dimensions?.length,
-            width:
-              req.body.mitat?.leveys ||
-              evaluation?.evaluation?.dimensions?.width,
-            height:
-              req.body.mitat?.korkeus ||
-              evaluation?.evaluation?.dimensions?.height,
+            length: req.body.mitat?.pituus || evaluation?.evaluation?.dimensions?.length,
+            width: req.body.mitat?.leveys || evaluation?.evaluation?.dimensions?.width,
+            height: req.body.mitat?.korkeus || evaluation?.evaluation?.dimensions?.height,
           },
-          materials: req.body.materiaalit || evaluation?.evaluation?.materials,
+          materials:
+            req.body.materiaalit || evaluation?.evaluation?.materials,
           condition: req.body.kunto || evaluation?.evaluation?.condition,
-        };
+        }
 
-        const updatedEvaluation = await Evaluation.findByIdAndUpdate(
-          req.params.id,
-          { evaluation: newEvaluation },
-          { new: true }
-        );
+        const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation }, { new: true });
+        console.log("Update successful, returning updated evaluation")
         return res.json(updatedEvaluation);
       } catch (error) {
-        return next(error);
+        return next(error)
       }
     } catch (error) {
       console.error("Error updating evaluation:", error);
       return next(error);
     }
+  });
+
+
+// Evaluationin statuksen päivitysreitti
+router.put("/:id/status",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  upload.none(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      console.log("Trying to find evaluation by id...")
+      const evaluation = await Evaluation.findById(req.params.id);
+      if (!evaluation) {
+        throw new CustomError("Evaluation not found", 404);
+      }
+
+      console.log("Evaluation found, updating status...")
+      try {
+        console.log("Checking if given status is valid...")
+        const validStatusList = ["not reviewed", "reviewed", "archived"]
+        const { status } = req.body
+        if (!validStatusList.includes(status)) {
+          throw new CustomError("Given status is not valid", 400);
+        }
+
+        if (evaluation.status === status) {
+          throw new CustomError("Evaluation already has this status", 400);
+        }
+
+        console.log("Status validated, updating status to: " + req.body.status)
+        evaluation.status = status
+        await evaluation.save();
+        console.log("Evaluation status updated successfully.")
+        return res.status(200).json({ message: "Status updated successfully!", evaluation })
+      } catch (error) {
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Status update unsuccessful: " + error)
+      next(error);
+    }
   }
+
 );
 
 export default router;
