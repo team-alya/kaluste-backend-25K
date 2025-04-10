@@ -264,64 +264,13 @@ router.post(
   }
 );
 
+
 // Poistoreitti
 router.delete(
   "/:id",
   verifyToken,
   requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      if (!req.file || !req.file.buffer) {
-        throw new CustomError("No image file provided", 400);
-      }
-
-      if (!req.user) {
-        throw new CustomError("User required", 400);
-      }
-
-      const optimizedImage = await resizeImage(req.file.buffer);
-
-      const imageForEvaluation = new Image({
-        contentType: req.file.mimetype,
-        image: optimizedImage.buffer,
-      });
-
-      const savedImage = await imageForEvaluation.save();
-      console.log("saved image id: " + savedImage.id);
-
-      const newEvaluation = new Evaluation({
-        imageId: savedImage.id,
-        evaluation: {
-          brand: req.body.merkki || "Ei tiedossa",
-          model: req.body.malli || "Ei tiedossa",
-          color: req.body.vari || "Ei tiedossa",
-          dimensions: {
-            length: req.body.mitat?.pituus || 0,
-            width: req.body.mitat?.leveys || 0,
-            height: req.body.mitat?.korkeus || 0,
-          },
-          materials:
-            req.body.materiaalit || [],
-          condition: req.body.kunto || "Ei tiedossa",
-          user: req.user
-        },
-      });
-
-      const savedEvaluation = await newEvaluation.save();
-      console.log("Evaluation saved successfully")
-      return res.json(savedEvaluation);
-    } catch (error) {
-      console.error("Error saving evaluation", error);
-      return next(error);
-
-    }
-  }
-);
-
-
-// Poistoreitti
-router.delete("/:id", verifyToken,
-  requiredRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
     try {
       console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id);
@@ -345,8 +294,12 @@ router.delete("/:id", verifyToken,
 );
 
 // Evaluationin päivitysreitti
-router.put("/:id", upload.none(), verifyToken,
-  requiredRole("expert", "admin"), async (req: Request, res: Response, next: NextFunction) => {
+router.put(
+  "/:id",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  upload.none(),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
       console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id)
@@ -381,6 +334,49 @@ router.put("/:id", upload.none(), verifyToken,
       console.error("Error updating evaluation:", error);
       return next(error);
     }
-  })
+  });
+
+
+// Evaluationin statuksen päivitysreitti
+router.put("/:id/status",
+  verifyToken,
+  requiredRole("expert", "admin"),
+  upload.none(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      console.log("Trying to find evaluation by id...")
+      const evaluation = await Evaluation.findById(req.params.id);
+      if (!evaluation) {
+        throw new CustomError("Evaluation not found", 404);
+      }
+
+      console.log("Evaluation found, updating status...")
+      try {
+        console.log("Checking if given status is valid...")
+        const validStatusList = ["not reviewed", "reviewed", "archived"]
+        const { status } = req.body
+        if (!validStatusList.includes(status)) {
+          throw new CustomError("Given status is not valid", 400);
+        }
+
+        if (evaluation.status === status) {
+          throw new CustomError("Evaluation already has this status", 400);
+        }
+
+        console.log("Status validated, updating status to: " + req.body.status)
+        evaluation.status = status
+        await evaluation.save();
+        console.log("Evaluation status updated successfully.")
+        return res.status(200).json({ message: "Status updated successfully!", evaluation })
+      } catch (error) {
+        return next(error);
+      }
+    } catch (error) {
+      console.error("Status update unsuccessful: " + error)
+      next(error);
+    }
+  }
+
+);
 
 export default router;

@@ -9,7 +9,7 @@ export const kuntoOptions = [
     "Kohtalainen",
     "Huono",
     "Ei tiedossa",
-    
+
 ] as const;
 
 const evaluationSchema = new Schema({
@@ -71,6 +71,11 @@ const evaluationSchema = new Schema({
         type: Object,
         required: true,
     },
+    status: {
+        type: String,
+        enum: ["not reviewed", "reviewed", "archived"],
+        default: "not reviewed"
+    }
 });
 
 evaluationSchema.set('toJSON', {
