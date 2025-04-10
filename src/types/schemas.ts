@@ -52,13 +52,13 @@ export type NewFurnitureDetails = z.infer<typeof newFurnitureDetailsSchema>;
 export type SerpApiResult = z.infer<typeof serpApiResultSchema>;
 
 export const priceEstimationSchema = z.object({
-  suositus_hinta: z
+  recommended_price: z
     .number()
     .min(0)
     .max(1000000)
     .describe("Suositeltu optimaalinen myyntihinta euroina"),
 
-  perustelu: z
+  price_reason: z
     .array(z.string())
     .describe(
       "Erittäin lyhyt ja ytimekäs perustelu hinta-arviolle. Älä toista perustiedoissa mainittuja asioita. Älä mainitse Perplexityä-analyysin lähteenäsi."

@@ -46,9 +46,16 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
 
   return {
     evaluation: {
-      merkki: chatgptResponse.merkki || "Ei tiedossa",
-      malli: chatgptResponse.malli || "Ei tiedossa",
-      ...furnitureDetails,
+      brand: chatgptResponse.merkki || "Ei tiedossa",
+      model: chatgptResponse.malli || "Ei tiedossa",
+      color: furnitureDetails.vari,
+      dimensions: {
+        length: restGptAnalysis.mitat?.pituus ?? 0,
+        width: restGptAnalysis.mitat?.leveys ?? 0,
+        height: restGptAnalysis.mitat?.korkeus ?? 0,
+      },
+    materials: furnitureDetails.materiaalit,
+    condition: furnitureDetails.kunto,
     },
     priceEstimation,
     savedImageId,
