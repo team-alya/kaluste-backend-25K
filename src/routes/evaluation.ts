@@ -60,6 +60,7 @@ router.post(
   requiredRole("user", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
     try {
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
@@ -99,6 +100,7 @@ router.post(
 
       const savedEvaluation = await newEvaluation.save();
       console.log("Evaluation saved successfully, returning saved evaluation")
+      console.log(`Process finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
       return res.json(savedEvaluation);
     } catch (error) {
       console.error("Error saving evaluation", error);
@@ -348,6 +350,7 @@ router.put(
   requiredRole("expert", "admin"),
   upload.none(),
   async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
     try {
       console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id)
@@ -372,8 +375,18 @@ router.put(
           condition: req.body.kunto || evaluation?.evaluation?.condition,
         }
 
-        const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation }, { new: true });
+        const newStatus = req.body.status || evaluation?.status;
+        const validStatusList = ["not reviewed", "reviewed", "archived"]
+
+        if (newStatus && !validStatusList.includes(newStatus)) {
+          throw new CustomError("New status is not valid.", 400);
+        }
+
+        const newDescription = req.body.description || evaluation?.description;
+
+        const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation, status: newStatus, description: newDescription }, { new: true });
         console.log("Update successful, returning updated evaluation")
+        console.log(`Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
         return res.json(updatedEvaluation);
       } catch (error) {
         return next(error)
@@ -386,7 +399,7 @@ router.put(
 
 
 // Evaluationin statuksen päivitysreitti
-router.put("/:id/status",
+router.patch("/:id/status",
   verifyToken,
   requiredRole("expert", "admin"),
   upload.none(),

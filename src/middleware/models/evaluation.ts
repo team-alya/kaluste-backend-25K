@@ -69,16 +69,16 @@ const evaluationSchema = new Schema({
     },
     priceEstimation: {
         suositus_hinta: {
-          type: Number,
-          required: false,
-          default: 0
+            type: Number,
+            required: false,
+            default: 0
         },
         perustelu: {
-          type: [String],
-          required: false,
-          default: "Ei tiedossa"
+            type: [String],
+            required: false,
+            default: "Ei tiedossa"
         }
-      },
+    },
     user: {
         type: Object,
         required: true,
@@ -86,7 +86,13 @@ const evaluationSchema = new Schema({
     status: {
         type: String,
         enum: ["not reviewed", "reviewed", "archived"],
+        required: false,
         default: "not reviewed"
+    },
+    description: {
+        type: String,
+        required: false,
+        default: "",
     }
 });
 
