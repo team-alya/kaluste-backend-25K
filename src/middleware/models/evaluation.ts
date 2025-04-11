@@ -71,10 +71,12 @@ const evaluationSchema = new Schema({
         suositus_hinta: {
           type: Number,
           required: false,
+          default: 0
         },
         perustelu: {
           type: [String],
           required: false,
+          default: "Ei tiedossa"
         }
       },
     user: {
