@@ -5,12 +5,12 @@ import {
   SerpApiResult,
 } from "@/types/schemas";
 import { openai } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateObject, generateText } from "ai";
+//import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { generateObject } from "ai";
 import dedent from "dedent";
 import dotenv from "dotenv";
 dotenv.config();
-
+/*
 const perplexity = createOpenAICompatible({
   name: "perplexity",
   headers: {
@@ -19,7 +19,10 @@ const perplexity = createOpenAICompatible({
   baseURL: "https://api.perplexity.ai/",
 });
 
-async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, serpApiResult: SerpApiResult) {
+async function perplexityPrizeAnalyse(
+  furnitureDetails: NewFurnitureDetails,
+  serpApiResult: SerpApiResult
+) {
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("fi-FI", {
     year: "numeric",
@@ -53,7 +56,9 @@ async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, ser
 }
 
 // Jos brändi ei tiedossa
-async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurnitureDetails) {
+async function perplexityPrizeAnalyseUnknownBrand(
+  furnitureDetails: NewFurnitureDetails
+) {
   const result = await generateText({
     model: perplexity("sonar"),
     prompt: `
@@ -86,11 +91,10 @@ async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurniture
 
   return result.text;
 }
-
+*/
 async function generatePriceObject(
   furnitureDetails: NewFurnitureDetails,
-  perplexityAnalysis: string,
-  serpApiResult: SerpApiResult,
+  serpApiResult: SerpApiResult
 ) {
   const result = await generateObject({
     model: openai("gpt-4o-2024-11-20"),
@@ -115,10 +119,6 @@ async function generatePriceObject(
     Jos analyysi ei ole käyttökelpoinen, tee oma arvio tuotetietojen perusteella.
     Ole kriittinen ja perustele hinta-arviosi huolellisesti.
 
-    <PERPLEXITY ANALYYSI>
-    ${perplexityAnalysis}
-    <PERPLEXITY ANALYYSI>
-
     Anna nyt analyysisi perustuen tuotetietoihin. Arvioi tuotteen hinta käytettyjen tavaroiden markkinoilla Suomessa. Olet itsenäinen hina-arvioija ja vastaat asiakkaalle myyjän näkökulmasta.
     Älä mainitse vastauksessa Perplexity-analyysin lähteenäsi.
     `,
@@ -129,20 +129,16 @@ async function generatePriceObject(
 
 export const analyzePrice = async (
   furnitureDetails: NewFurnitureDetails,
-  serpApiResult: SerpApiResult,
+  serpApiResult: SerpApiResult
 ): Promise<PriceEstimation> => {
   try {
-    const perplexityAnalysis =
-        serpApiResult.merkki === "Ei tiedossa"
-          ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
-          
-          : await perplexityPrizeAnalyse(furnitureDetails, serpApiResult);
-    
-    const result = await generatePriceObject(
-      furnitureDetails,
-      perplexityAnalysis,
-      serpApiResult
-    );
+    /*const perplexityAnalysis =
+      serpApiResult.merkki === "Ei tiedossa"
+        ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
+        : await perplexityPrizeAnalyse(furnitureDetails, serpApiResult);
+    console.log(perplexityAnalysis);
+    */
+    const result = await generatePriceObject(furnitureDetails, serpApiResult);
 
     return result;
   } catch (error) {

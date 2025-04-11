@@ -29,12 +29,12 @@ router.post(
         throw new CustomError("User required", 400);
       }
 
-      const { evaluation, priceEstimation, savedImageId: id } =
-        await processImageAndAnalyze(req.file);
+      const { evaluation, savedImageId: id } = await processImageAndAnalyze(
+        req.file
+      );
       savedImageId = id;
 
-
-      return res.json({ evaluation, priceEstimation });
+      return res.json({ evaluation });
     } catch (error) {
       console.error("Pipeline error:", error);
       return next(error);
@@ -65,7 +65,7 @@ router.get(
       }
 
       res.setHeader("Content-Type", image.contentType);
-      console.log("Image found, sending to serpAPI")
+      console.log("Image found, sending to serpAPI");
       return res.send(image.image);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -85,7 +85,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.setHeader("Content-Type", image.contentType);
-    console.log("Image found, sending image")
+    console.log("Image found, sending image");
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
