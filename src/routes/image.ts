@@ -17,7 +17,7 @@ const router = express.Router();
 router.post(
   "/",
   verifyToken,
-  requiredRole("customer", "expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId: string = "";

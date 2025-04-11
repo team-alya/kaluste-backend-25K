@@ -11,7 +11,7 @@ router.post(
   "/",
   imageUploadHandler(),
   verifyToken,
-  requiredRole("customer", "expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   imageValidator,
   async (req: Request, res: Response) => {
     try {

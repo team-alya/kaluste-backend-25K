@@ -53,7 +53,7 @@ router.get(
 router.post(
   "/save",
   verifyToken,
-  requiredRole("customer", "expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -106,7 +106,7 @@ router.post(
 router.post(
   "/reset",
   verifyToken,
-  requiredRole("customer", "expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       await Evaluation.deleteMany({});
