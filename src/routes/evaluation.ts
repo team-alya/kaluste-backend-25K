@@ -134,6 +134,15 @@ router.post(
           mitat: { pituus: 200, leveys: 90, korkeus: 90 },
           materiaalit: ["nahka"],
           kunto: "Huono",
+          priceEstimation: {
+            suositus_hinta: 150,
+            perustelu: [
+              "Huonokuntoinen nahkasohva",
+              "Suuri koko voi vaikeuttaa myyntiä",
+              "Brändi tunnettu laadusta"
+            ]
+          },
+          status: "reviewed"
         },
         {
           merkki: "Pohjanmaan Fantasy",
@@ -142,6 +151,15 @@ router.post(
           mitat: { pituus: 180, leveys: 90, korkeus: 85 },
           materiaalit: ["kangas", "puu"],
           kunto: "Hyvä",
+          priceEstimation: {
+            suositus_hinta: 400,
+            perustelu: [
+              "Hyväkuntoinen designsohva",
+              "Neutraali väri nostaa arvoa",
+              "Materiaalit kestäviä"
+            ]
+          },
+          status: "not reviewed"
         },
         {
           merkki: "Asko",
@@ -150,6 +168,15 @@ router.post(
           mitat: { pituus: 80, leveys: 70, korkeus: 100 },
           materiaalit: ["puu", "kangas"],
           kunto: "Kohtalainen",
+          priceEstimation: {
+            suositus_hinta: 120,
+            perustelu: [
+              "Kohtalaisessa kunnossa oleva tuoli",
+              "Tunnettu valmistaja",
+              "Kompakti koko"
+            ]
+          },
+          status: "not reviewed"
         },
         {
           merkki: "Ei tiedossa",
@@ -158,6 +185,15 @@ router.post(
           mitat: { pituus: 40, leveys: 40, korkeus: 90 },
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
+          priceEstimation: {
+            suositus_hinta: 200,
+            perustelu: [
+              "Tyylihuonekalu hyvässä kunnossa",
+              "Klassinen design",
+              "Sopii moneen sisustukseen"
+            ]
+          },
+          status: "archived"
         },
         {
           merkki: "Laitalan Kaluste",
@@ -166,7 +202,16 @@ router.post(
           mitat: { pituus: 45, leveys: 45, korkeus: 90 },
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
-        },
+          priceEstimation: {
+            suositus_hinta: 250,
+            perustelu: [
+              "Koristeellinen design-tuoli",
+              "Erinomainen kunto",
+              "Laadukas valmistaja"
+            ]
+          },
+          status: "not reviewed"
+        }
       ];
 
       const savedEvaluations = [];
@@ -198,6 +243,8 @@ router.post(
             materials: newEvaluationsData[i].materiaalit || [],
             condition: newEvaluationsData[i].kunto || "Ei tiedossa",
           },
+          priceEstimation: newEvaluationsData[i].priceEstimation,
+          status: newEvaluationsData[i].status,
           user: req.user?.username,
         });
 
