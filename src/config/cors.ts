@@ -8,4 +8,8 @@ export const corsOptions = {
     "https://localhost:4173",
     "https://kaluste-frontend-25k-git-kalustearvio-25k.2.rahtiapp.fi"
   ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,
+  exposedHeaders: ['Authorization'],
 };
