@@ -19,6 +19,7 @@ router.post(
   imageUploadHandler(),
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId = "";
+    const startTime = Date.now();
 
     try {
       if (!req.file || !req.file.buffer) {
@@ -43,6 +44,7 @@ router.post(
         try {
           await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
+          console.log(`Analysis finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
           next(deleteError);
