@@ -93,6 +93,7 @@ router.post(
           materials: req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
         },
+        priceEstimation: req.body.priceEstimation,
         user: req.user?.username,
       });
 
