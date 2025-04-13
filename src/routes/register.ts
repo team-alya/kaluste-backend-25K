@@ -2,10 +2,12 @@ import express, { NextFunction, Request, Response } from 'express';
 import User from '../middleware/models/user';
 import { tokenGenerator } from '@/utils/auth';
 import { CustomError } from '@/types/customError';
+import { verifyToken } from '@/middleware/auth';
+import { requiredRole } from '@/middleware/roleChecker';
 
 const router = express.Router();
 
-router.post("/", async (req: Request, res: Response, next: NextFunction) => {
+router.post("/", verifyToken, requiredRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { username, password, email, firstname, lastname, role } = req.body;
 
