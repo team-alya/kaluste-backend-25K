@@ -1,10 +1,13 @@
-import { resizeImage } from "src/utils/resizeImage"; 
+import { resizeImage } from "src/utils/resizeImage";
 import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 import { analyzePrice } from "@/services/ai/priceAnalyzer/perplexity";
-import { NewFurnitureDetails, newFurnitureDetailsSchema } from "@/types/schemas";
+import {
+  NewFurnitureDetails,
+  newFurnitureDetailsSchema,
+} from "@/types/schemas";
 
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   const optimizedImage = await resizeImage(file.buffer);
@@ -21,7 +24,6 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
 
   console.log("pass the id to serpapi");
   const serpApiResponse = await serpapi(savedImageId);
-  
 
   console.log("pass the serpapi response to chatgpt");
   const [chatgptResponse, restGptAnalysis] = await Promise.all([
@@ -37,10 +39,11 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
       korkeus: restGptAnalysis.mitat?.korkeus ?? 0,
     },
     materiaalit: restGptAnalysis.materiaalit || [],
-    kunto: (restGptAnalysis.kunto as NewFurnitureDetails["kunto"]) || "Ei tiedossa",
+    kunto: restGptAnalysis.kunto || "Ei tiedossa",
   };
 
-  const furnitureDetails: NewFurnitureDetails = newFurnitureDetailsSchema.parse(rawFurnitureDetails);
+  const furnitureDetails: NewFurnitureDetails =
+    newFurnitureDetailsSchema.parse(rawFurnitureDetails);
 
   const priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse);
 
@@ -54,8 +57,8 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
         width: restGptAnalysis.mitat?.leveys ?? 0,
         height: restGptAnalysis.mitat?.korkeus ?? 0,
       },
-    materials: furnitureDetails.materiaalit,
-    condition: furnitureDetails.kunto,
+      materials: furnitureDetails.materiaalit,
+      condition: furnitureDetails.kunto,
     },
     priceEstimation,
     savedImageId,

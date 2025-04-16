@@ -16,6 +16,8 @@ export const resizeImage = async (imageBuffer: Buffer) => {
     throw new Error("Could not read image dimensions");
   }
 
+  sharpImage.rotate();
+
   const MAX_DIMENSION = 1568;
   const TARGET_SHORT_SIDE = 768;
 
