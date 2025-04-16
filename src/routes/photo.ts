@@ -15,6 +15,7 @@ router.post(
   requiredRole("user", "expert", "admin"),
   imageValidator,
   async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
     try {
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
@@ -25,6 +26,7 @@ router.post(
       const analysisResult = await gpt4Analyzer.analyzePhotoQuality(photo);
       console.log("Photo analysis result:", analysisResult);
 
+      console.log(`Analysis finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
       return res.json(analysisResult);
     } catch (error) {
       console.error("Error in photo analysis route:", error);

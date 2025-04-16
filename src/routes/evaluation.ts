@@ -268,6 +268,7 @@ router.post(
 router.post(
   "/check",
   async (req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
     try {
       const { merkki: brand, malli: model } = req.body;
 
@@ -285,6 +286,7 @@ router.post(
       });
 
       if (existingBrand) {
+        console.log(`Process finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
         return res.status(200).json({
           message: "Brändi ja/tai malli tarvitaan varastoon.",
           required: true,
