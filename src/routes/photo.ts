@@ -8,6 +8,8 @@ import { verifyToken } from "@/middleware/auth";
 const router = express.Router();
 const gpt4Analyzer = new GPT4Analyzer();
 
+// Photo analysis route, analyzing the quality of the photo
+
 router.post(
   "/",
   imageUploadHandler(),

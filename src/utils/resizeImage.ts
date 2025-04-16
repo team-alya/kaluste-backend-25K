@@ -8,6 +8,7 @@ import sharp from "sharp";
  * - Format: JPEG
  */
 
+// This function resizes and optimizes an image buffer for LLM API requirements.
 export const resizeImage = async (imageBuffer: Buffer) => {
   const sharpImage = sharp(imageBuffer);
   const metadata = await sharpImage.metadata();

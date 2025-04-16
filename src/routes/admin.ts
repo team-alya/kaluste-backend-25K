@@ -3,10 +3,11 @@ import User from "../middleware/models/user";
 import { requiredRole } from "../middleware/roleChecker";
 import { CustomError } from "@/types/customError";
 import { verifyToken } from "@/middleware/auth";
+import { tokenGenerator } from "@/utils/auth";
 
 const router = express.Router();
 
-/*// Admin muokkaa käyttäjän roolia
+/*
 router.put(
   "/:id/role",
   verifyToken,
@@ -44,10 +45,7 @@ router.put(
 );
 */
 
-// Käyttäjän tietojen muokkaus, ehkä muokkaamalla saisi myös käyttäjälle itse mahdollisuuden muokata joitakin tietoja?
-// nyt vain admin muokkaa, tämä laitettu että voi muokata kaikkea tietoa paitsi salasanaa, ylempi vain roolin muokkaus
-
-// Admin hakee kaikki käyttäjät
+// Get all users
 router.get(
   "/",
   verifyToken,
@@ -65,7 +63,8 @@ router.get(
   }
 );
 
-// Admin muokkaa käyttäjän tietoja
+// Edit user
+
 router.put(
   "/:id",
   verifyToken,
@@ -122,7 +121,8 @@ router.put(
   }
 );
 
-// Admin poistaa käyttäjän
+// Delete user
+
 router.delete(
   "/:id",
   verifyToken,
@@ -146,24 +146,46 @@ router.delete(
   }
 );
 
-// Käyttäjä saa oman tietonsa (testi vain, mahdollisuus tulevaisuudessa)
-router.get(
-  "/me",
-  verifyToken,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const userId = req.user;
-      const user = await User.findById(userId, "-password");
-      if (!user) {
-        throw new CustomError("User not found.", 404);
-      }
-      console.log("User found");
-      return res.status(200).json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      return next(error);
+// Register new user
+
+router.post("/register", verifyToken, requiredRole("admin"), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username, password, email, firstname, lastname, role } = req.body;
+
+    const existingUser = await User.findOne({ username });
+
+    if (existingUser) {
+      throw new CustomError("This username is already taken.", 400);
     }
+
+    if (role) {
+      const validRoles = ["user", "admin", "expert"];
+      if (!validRoles.includes(role)) {
+        throw new CustomError("Invalid role specified.", 400);
+      }
+    }
+
+    const newUser = new User({ username, password, email, firstname, lastname, role });
+    await newUser.save();
+
+    const token = tokenGenerator(newUser.username);
+    return res.status(201).json({
+      token,
+      message: "New user created successfully!",
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        firstname: newUser.firstname,
+        lastname: newUser.lastname,
+        role: newUser.role
+      }
+    })
+
+  } catch (error) {
+    return next(error);
   }
-);
+
+})
 
 export default router;

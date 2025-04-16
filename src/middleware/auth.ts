@@ -4,6 +4,8 @@ import { Request, Response, NextFunction } from 'express';
 import User from '@/middleware/models/user';
 import { CustomError } from '@/types/customError';
 
+// Middleware to verify JWT token
+// and attach user information to the request object
 export const verifyToken = async (req: Request, _res: Response, next: NextFunction) => {
     try {
         const token = req.header("Authorization")?.split(" ")[1];

@@ -9,6 +9,7 @@ import {
   newFurnitureDetailsSchema,
 } from "@/types/schemas";
 
+// This function is used to process the image and analyze it
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   const optimizedImage = await resizeImage(file.buffer);
 

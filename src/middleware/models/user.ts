@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 const { Schema } = mongoose;
-
+// TypeScript interface for the user document
 export interface UserDocument extends Document {
   username: string;
   password: string;
@@ -12,7 +12,8 @@ export interface UserDocument extends Document {
   role: string;
   comparePassword(password: string): Promise<boolean>;
 }
-
+// This schema defines the structure of the user data
+// The user data is stored in a MongoDB database using Mongoose
 const userSchema = new Schema<UserDocument>({
   username: {
     type: String,

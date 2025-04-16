@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import multer from "multer";
 
+// Middleware to handle image uploads
+// This middleware uses multer to handle image uploads
 export const imageUploadHandler = () => {
   return multer({
     storage: multer.memoryStorage(),
@@ -10,7 +12,8 @@ export const imageUploadHandler = () => {
     },
   }).single("image");
 };
-
+// Middleware to validate image uploads
+// This middleware checks if the uploaded file is an image
 export const imageValidator = (
   req: Request,
   res: Response,

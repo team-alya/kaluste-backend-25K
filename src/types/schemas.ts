@@ -8,7 +8,6 @@ export const kuntoOptions = [
   "Huono",
   "Ei tiedossa",
 ] as const;
-
 export const serpApiResultSchema = z.object({
   merkki: z
     .string()

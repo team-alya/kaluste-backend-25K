@@ -6,7 +6,7 @@ import { CustomError } from "@/types/customError";
 
 const router = express.Router();
 
-// Löytöreitti
+// Get all brands
 
 router.get(
   "/all",
@@ -22,7 +22,7 @@ router.get(
   }
 );
 
-// Lisäysreitti
+// Add new brand
 
 router.post(
   "/add",
@@ -52,7 +52,7 @@ router.post(
   }
 );
 
-// Poistoreitti
+// Delete brand, model
 
 router.delete(
   "/delete/:id",
@@ -74,7 +74,8 @@ router.delete(
   }
 );
 
-// Muokkausreitti
+// Update brand, model
+
 router.put(
   "/update/:id",
   verifyToken,

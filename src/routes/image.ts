@@ -12,6 +12,7 @@ import { processImageAndAnalyze } from "@/services/ai/imageAnalyzer/processImage
 
 const router = express.Router();
 
+// Upload image for evaluation
 router.post(
   "/",
   verifyToken,
@@ -77,6 +78,7 @@ router.get(
 );
 
 // Find evaluation image by id
+
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("GET image with id...");

@@ -8,6 +8,7 @@ dotenv.config();
 const router = express.Router();
 const SERPAPI_KEY = process.env.SERPAPI_API_KEY;
 
+// Function to find locations using SerpApi
 const findLocations = async (coordinates: string) => {
   const url = `https://serpapi.com/search.json?engine=google_maps&q=Kierrätyskeskus&ll=@${coordinates},12z&api_key=${SERPAPI_KEY}`;
 
@@ -26,7 +27,7 @@ const findLocations = async (coordinates: string) => {
     return [];
   }
 };
-
+// POST route to handle location search
 router.post("/", async (req: Request, res: Response) => {
   const { coordinates } = req.body;
 
