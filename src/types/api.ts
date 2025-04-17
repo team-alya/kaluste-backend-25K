@@ -6,4 +6,5 @@ export interface FurnitureDetailsRequest extends Request {
     furnitureDetails: NewFurnitureDetails;
     serpApiResult: SerpApiResult;
   };
+  file?: Express.Multer.File;
 }

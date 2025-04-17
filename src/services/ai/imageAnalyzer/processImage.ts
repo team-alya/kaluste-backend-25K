@@ -3,11 +3,7 @@ import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
-//import { analyzePrice } from "@/services/ai/priceAnalyzer/perplexity";
-//import {
-//NewFurnitureDetails,
-// newFurnitureDetailsSchema,
-//} from "@/types/schemas";
+import { analyzePrice } from "@/services/ai/priceAnalyzer/priceFunction";
 
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   const optimizedImage = await resizeImage(file.buffer);
@@ -31,6 +27,10 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
     chatgptRestOfAnalysis(optimizedImage.buffer),
   ]);
 
+  console.log("pass the chatgpt response to price analyzer");
+  const priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse, optimizedImage.buffer);
+  console.log("price estimation: ", priceEstimation);
+
   return {
     evaluation: {
       brand: chatgptResponse.merkki || "Ei tiedossa",
@@ -44,6 +44,7 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
       materials: restGptAnalysis.materiaalit,
       condition: restGptAnalysis.kunto,
     },
+    priceEstimation,
     savedImageId,
   };
 };

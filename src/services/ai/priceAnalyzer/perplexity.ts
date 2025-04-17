@@ -1,3 +1,6 @@
+// Kaikki alla oleva koodi ei käytössä, koska Perplexityn APIn kutsu kestää liian kauan
+// Käytetään OpenAI:n mallia hinta-analyysiin.
+
 import {
   NewFurnitureDetails,
   PriceEstimation,
