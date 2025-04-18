@@ -1,14 +1,13 @@
-import { resizeImage } from "src/utils/resizeImage"; 
+import { resizeImage } from "src/utils/resizeImage";
 import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
 import { analyzePrice } from "@/services/ai/priceAnalyzer/perplexity";
 import { FurnitureDetails } from "@/types/schemas";
-import { NextFunction } from "express";
 import { CustomError } from "@/types/customError";
 
-export const processImageAndAnalyze = async (file: Express.Multer.File, next: NextFunction) => {
+export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   try {
     console.log("Resizing image...");
     const optimizedImage = await resizeImage(file.buffer);
@@ -45,7 +44,10 @@ export const processImageAndAnalyze = async (file: Express.Multer.File, next: Ne
           kunto: restGptAnalysis.kunto || "Ei tiedossa",
         };
 
-        const priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse);
+        const priceEstimation = await analyzePrice(
+          restGptAnalysis,
+          chatgptResponse
+        );
 
         return {
           evaluation,
@@ -54,14 +56,14 @@ export const processImageAndAnalyze = async (file: Express.Multer.File, next: Ne
         };
       } catch (error) {
         console.error("Pipeline error:", error);
-        return next(new CustomError("Pipeline error", 500));
+        throw new CustomError("Pipeline error", 500);
       }
     } catch (error) {
       console.error("Image handling failed: ", error);
-      return next(new CustomError("Image hanlding failed", 500))
+      throw new CustomError("Image hanlding failed", 500);
     }
   } catch (error) {
     console.log("Error in image processing pipeline:", error);
-    return next(new CustomError("Error in image processing", 500));
+    throw new CustomError("image", 500);
   }
 };
