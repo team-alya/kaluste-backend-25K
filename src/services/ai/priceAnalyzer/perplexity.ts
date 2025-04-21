@@ -188,7 +188,7 @@ export async function analyzeStockRelevance(
               - Malli: ${serpApiResult.malli}
               - Väri: ${furnitureDetails.vari}
               - Mitat: ${furnitureDetails.mitat.pituus}x${furnitureDetails.mitat.leveys}x${furnitureDetails.mitat.korkeus} cm
-              - Materiaalit: ${furnitureDetails.materiaalit.join(", ")}
+              - Materiaalit: ${furnitureDetails.materiaalit}
               - Kunto: ${furnitureDetails.kunto}
 
               Valitse yksi seuraavista syistä ja lisää se lauseeseen, älä arvaa:
