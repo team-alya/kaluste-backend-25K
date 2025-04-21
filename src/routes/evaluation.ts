@@ -370,6 +370,16 @@ router.put(
           materials:
             req.body.materiaalit || evaluation?.evaluation?.materials,
           condition: req.body.kunto || evaluation?.evaluation?.condition,
+          priceEstimation: {
+            suositus_hinta:
+              req.body.suositus_hinta ??
+              evaluation?.priceEstimation?.suositus_hinta,
+            perustelu: req.body.perustelu
+              ? Array.isArray(req.body.perustelu)
+                ? req.body.perustelu
+                : [req.body.perustelu]
+              : evaluation?.priceEstimation?.perustelu,
+          },
         }
 
         const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation }, { new: true });
