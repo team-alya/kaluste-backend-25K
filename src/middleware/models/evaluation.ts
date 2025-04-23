@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
+// Define the kuntoOptions array with const assertion
+
 export const kuntoOptions = [
     "Uusi",
     "Erinomainen",
@@ -11,6 +13,9 @@ export const kuntoOptions = [
     "Ei tiedossa",
 
 ] as const;
+
+// Schema for the evaluation
+// This schema defines the structure of the evaluation data
 
 const evaluationSchema = new Schema({
     timeStamp: {

@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 
-
+// This schema defines the structure of the expert selected brand data
 const expertSelectedBrandSchema = new Schema({
   brand: {
     type: String,

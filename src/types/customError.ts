@@ -1,3 +1,5 @@
+// This file defines a custom error class for handling errors in the application.
+
 export class CustomError extends Error {
     status?: number;
 

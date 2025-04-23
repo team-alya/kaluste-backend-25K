@@ -1,3 +1,5 @@
+// CORS configuration for the application
+
 export const corsOptions = {
   origin: [
     "https://kalustebottifrontend-arvolaskuri-demo.2.rahtiapp.fi",

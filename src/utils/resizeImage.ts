@@ -8,6 +8,7 @@ import sharp from "sharp";
  * - Format: JPEG
  */
 
+// This function resizes and optimizes an image buffer for LLM API requirements.
 export const resizeImage = async (imageBuffer: Buffer) => {
   const sharpImage = sharp(imageBuffer);
   const metadata = await sharpImage.metadata();
@@ -15,6 +16,8 @@ export const resizeImage = async (imageBuffer: Buffer) => {
   if (!metadata.width || !metadata.height) {
     throw new Error("Could not read image dimensions");
   }
+
+  sharpImage.rotate();
 
   const MAX_DIMENSION = 1568;
   const TARGET_SHORT_SIDE = 768;

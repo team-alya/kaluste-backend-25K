@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 
 const { Schema } = mongoose;
-
+// This schema defines the structure of the location data
+// The location data is stored in a MongoDB database using Mongoose
 const locationSchema = new Schema({
   name: {
     type: String,

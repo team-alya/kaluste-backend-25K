@@ -7,6 +7,7 @@ import { FurnitureDetails } from "@/types/schemas";
 import { CustomError } from "@/types/customError";
 import { analyzePrice } from "@/services/ai/priceAnalyzer/priceFunction";
 
+// This function is used to process the image and analyze it
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   let optimizedImage: any;
   try {

@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "@/types/customError";
 import logger from "@/utils/logger";
 
+// Custom error handler middleware
+// This middleware handles errors thrown in the application
 export const errorHandler = (
   err: CustomError,
   _req: Request,

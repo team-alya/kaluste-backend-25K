@@ -5,6 +5,7 @@ import { CustomError } from '@/types/customError';
 
 const router = express.Router();
 
+// Login route
 router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { username, password } = req.body;

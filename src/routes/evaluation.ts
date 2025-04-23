@@ -15,6 +15,7 @@ import { analyzeStockRelevance } from "@/services/ai/priceAnalyzer/perplexity";
 const upload = multer();
 const router = express.Router();
 
+// Get all evaluations
 router.get(
   "/all",
   verifyToken,
@@ -32,6 +33,8 @@ router.get(
     }
   }
 );
+
+// Get evaluations by id
 
 router.get(
   "/:id",
@@ -54,6 +57,8 @@ router.get(
     }
   }
 );
+
+// Save evaluation
 
 router.post(
   "/save",
@@ -110,7 +115,7 @@ router.post(
   }
 );
 
-// tietokannan nollaus, oletuksena vain lokaalisti toimisi
+// reset database (for testing purposes, delete from production(?))
 
 router.post(
   "/reset",
@@ -266,11 +271,11 @@ router.post(
   }
 });
 
+// Check if brand or model is wanted
 
+router.post(
+  "/check", verifyToken, requiredRole("user", "expert", "admin"),
 
-router.post("/check",
-  imageUploadHandler(),
-  verifyToken,
   async (req: Request, res: Response, next: NextFunction) => {
 
   try {
@@ -395,7 +400,8 @@ router.post(
 );
 
 
-// Poistoreitti
+// Delete evaluation
+
 router.delete(
   "/:id",
   verifyToken,
@@ -423,7 +429,8 @@ router.delete(
   }
 );
 
-// Evaluationin päivitysreitti
+// Update evaluation
+
 router.put(
   "/:id",
   verifyToken,
@@ -488,7 +495,8 @@ router.put(
   });
 
 
-// Evaluationin statuksen päivitysreitti
+// Update evaluation status(not reviewed, reviewed, archived)
+
 router.patch("/:id/status",
   verifyToken,
   requiredRole("expert", "admin"),

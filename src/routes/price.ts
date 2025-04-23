@@ -6,6 +6,7 @@ import { imageUploadHandler } from "@/middleware/middleware";
 
 const router = express.Router();
 
+// Route to analyze price
 router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
   try {
     const furnitureDetails = JSON.parse(req.body.furnitureDetails);
