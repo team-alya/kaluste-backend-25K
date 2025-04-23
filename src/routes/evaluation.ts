@@ -273,10 +273,7 @@ router.post(
 
 // Check if brand or model is wanted
 
-router.post(
-  "/check", verifyToken, requiredRole("user", "expert", "admin"),
-
-  async (req: Request, res: Response, next: NextFunction) => {
+router.post("/check", verifyToken, requiredRole("user", "expert", "admin"), imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
 
   try {
 
