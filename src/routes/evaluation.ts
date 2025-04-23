@@ -288,8 +288,8 @@ router.post("/check",
       }
 
       const query: any = {};
-      if (brand) query.brand = brand;
-      if (model) query.model = model;
+      if (brand) query.brand = brand.toLowerCase();
+      if (model) query.model = model.toLowerCase();
 
       console.log("Checking if brand or model are wanted...")
       const existingBrand = await ExpertSelectedBrand.findOne({
