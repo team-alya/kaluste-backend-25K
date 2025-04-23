@@ -3,9 +3,9 @@ import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
-import { analyzePrice } from "@/services/ai/priceAnalyzer/perplexity";
 import { FurnitureDetails } from "@/types/schemas";
 import { CustomError } from "@/types/customError";
+import { analyzePrice } from "@/services/ai/priceAnalyzer/priceFunction";
 
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   let optimizedImage: any;
@@ -53,23 +53,24 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   let priceEstimation: any;
   try {
     console.log("Analyzing price...");
-    priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse);
+    priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse, optimizedImage.buffer);
+    console.log("price estimation: ", priceEstimation);
   } catch (error) {
     throw new CustomError("Price analysis failed", 500);
   }
 
   try {
     const evaluation: FurnitureDetails = {
-      merkki: chatgptResponse.merkki || "Ei tiedossa",
-      malli: chatgptResponse.malli || "Ei tiedossa",
-      vari: restGptAnalysis.vari || "Ei tiedossa",
-      mitat: {
-        pituus: restGptAnalysis.mitat?.pituus ?? 0,
-        leveys: restGptAnalysis.mitat?.leveys ?? 0,
-        korkeus: restGptAnalysis.mitat?.korkeus ?? 0,
-      },
-      materiaalit: restGptAnalysis.materiaalit || [],
-      kunto: restGptAnalysis.kunto || "Ei tiedossa",
+        merkki: chatgptResponse.merkki || "Ei tiedossa",
+        malli: chatgptResponse.malli || "Ei tiedossa",
+        vari: restGptAnalysis.vari || "Ei tiedossa",
+        mitat: {
+          pituus: restGptAnalysis.mitat?.pituus ?? 0,
+          leveys: restGptAnalysis.mitat?.leveys ?? 0,
+          korkeus: restGptAnalysis.mitat?.korkeus ?? 0,
+        },
+        materiaalit: restGptAnalysis.materiaalit || [],
+        kunto: restGptAnalysis.kunto || "Ei tiedossa",
     };
 
     return {
@@ -80,4 +81,5 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
   } catch (error) {
     throw new CustomError("Evaluation assembly failed", 500);
   }
+
 };
