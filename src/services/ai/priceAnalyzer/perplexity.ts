@@ -11,6 +11,8 @@ import dedent from "dedent";
 import dotenv from "dotenv";
 dotenv.config();
 
+// This function is used to analyze the price of a furniture item using Perplexity AI
+
 const perplexity = createOpenAICompatible({
   name: "perplexity",
   headers: {
@@ -57,7 +59,7 @@ async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, ser
   return result.text;
 }
 
-// Jos brändi ei tiedossa
+// This function is used to analyze the price of a furniture item using Perplexity AI
 async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurnitureDetails) {
   const result = await generateText({
     model: perplexity("sonar"),
@@ -91,6 +93,8 @@ async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurniture
 
   return result.text;
 }
+
+// This function generates a price estimation object using OpenAI's GPT-4 model
 
 async function generatePriceObject(
   furnitureDetails: NewFurnitureDetails,
@@ -131,6 +135,7 @@ async function generatePriceObject(
 
   return result.object;
 }
+// This function is used to analyze the price of a furniture item using Perplexity AI
 
 export const analyzePrice = async (
   furnitureDetails: NewFurnitureDetails,

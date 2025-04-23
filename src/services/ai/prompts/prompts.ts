@@ -12,6 +12,7 @@ Analyysin vaiheet:
 3. Palauta parhaiten sopivan valmistajan nimi
 `;
 
+
 export const dataAnalyzerGPT4oSystemMsg = `
 Analysoi seuraava data ja tunnista siitä **todennäköisin** huonekalun tai esineen valmistaja (merkki) ja malli.
 

@@ -4,6 +4,7 @@ import { FurnitureDetailsRequest } from "../types/api";
 
 const router = express.Router();
 
+// Route to analyze price
 router.post("/", async (req: FurnitureDetailsRequest, res: Response) => {
   const startTime = Date.now();
   try {

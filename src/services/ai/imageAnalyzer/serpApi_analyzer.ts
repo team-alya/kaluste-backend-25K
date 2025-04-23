@@ -2,11 +2,13 @@ import { BaseResponse, getJson } from "serpapi";
 
 const serpApi_Key = process.env.SERPAPI_API_KEY;
 
+//
 interface VisualMatch {
   position: string;
   title: string;
 }
 
+// Define the structure of the response you expect from the API
 export const serpapi = async (id: string): Promise<BaseResponse> => {
   const result = await getJson(
     {

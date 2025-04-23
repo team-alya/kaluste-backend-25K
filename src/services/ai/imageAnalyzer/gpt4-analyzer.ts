@@ -9,6 +9,8 @@ import { analyzeImagePromptGPT4o } from "../prompts/prompts";
 import { imgAnalyzeSystemMsg } from "../prompts/system";
 dotenv.config();
 
+// This function is used to analyze the image and return the details of the furniture
+
 export const chatgptRestOfAnalysis = async (
   imageBuffer: Buffer
 ): Promise<NewFurnitureDetails> => {

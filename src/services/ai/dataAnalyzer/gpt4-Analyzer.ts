@@ -2,12 +2,11 @@ import { SerpApiResult, serpApiResultSchema } from "@/types/schemas";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { BaseResponse } from "serpapi";
-
 import { dataAnalyzerGPT4oSystemMsg } from "../prompts/prompts";
 import dotenv from "dotenv";
 
 dotenv.config();
-
+// This function is used to analyze the data from the SerpApi response
 export const chatgptForBrandAndModel = async (
   data: BaseResponse
 ): Promise<SerpApiResult> => {
