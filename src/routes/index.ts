@@ -12,7 +12,7 @@ import userRoutes from "./user";
 const router = Router();
 
 router.get("/ping", (_req, res) => {
-  res.send("pong");
+  res.send("pong!");
 });
 
 router.use("/photo", photoRouter);

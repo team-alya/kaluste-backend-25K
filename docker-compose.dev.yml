@@ -1,0 +1,17 @@
+services:
+  app:
+    container_name: kaluste_backend
+    build:
+      context: .
+      dockerfile: dev.Dockerfile
+    ports:
+      - "3000:3000"  # Oletan, että sovelluksesi käyttää porttia 3000
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - MONGODB_URI=${MONGODB_URI}
