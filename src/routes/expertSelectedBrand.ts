@@ -39,8 +39,14 @@ router.post(
 
     try {
       const newEntry = new ExpertSelectedBrand({});
-      if (brand?.trim()) newEntry.brand = brand.trim();
-      if (model?.trim()) newEntry.model = model.trim();
+      
+      if (brand?.trim()) {
+        newEntry.brand = brand.trim().toLowerCase(); 
+      }
+
+      if (model?.trim()) {
+        newEntry.model = model.trim().toLowerCase();
+      }
 
       await newEntry.save();
       return res
