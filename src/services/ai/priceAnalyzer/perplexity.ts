@@ -14,17 +14,12 @@ import dedent from "dedent";
 import dotenv from "dotenv";
 dotenv.config();
 
-<<<<<<< HEAD
 type SimpleSerpApiResult = {
   merkki: string;
   malli: string;
 };
 
 /*
-=======
-// This function is used to analyze the price of a furniture item using Perplexity AI
-
->>>>>>> 8dab1955dd6a15c9af201db097d41a2efdb2f05d
 const perplexity = createOpenAICompatible({
   name: "perplexity",
   headers: {
