@@ -1,63 +1,86 @@
-import { resizeImage } from "src/utils/resizeImage"; 
+import { resizeImage } from "src/utils/resizeImage";
 import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
-import { analyzePrice } from "@/services/ai/priceAnalyzer/perplexity";
-import { NewFurnitureDetails, newFurnitureDetailsSchema } from "@/types/schemas";
+import { FurnitureDetails } from "@/types/schemas";
+import { CustomError } from "@/types/customError";
+import { analyzePrice } from "@/services/ai/priceAnalyzer/priceFunction";
 
+// This function is used to process the image and analyze it
 export const processImageAndAnalyze = async (file: Express.Multer.File) => {
-  const optimizedImage = await resizeImage(file.buffer);
+  let optimizedImage: any;
+  try {
+    console.log("Resizing image...");
+    optimizedImage = await resizeImage(file.buffer);
+  } catch (error) {
+    throw new CustomError("Image resizing failed", 500);
+  }
 
-  console.log("trying to save image to db");
-  const imageForEvaluation = new tempImage({
-    contentType: file.mimetype,
-    image: optimizedImage.buffer,
-  });
+  let savedImageId: string;
+  try {
+    console.log("Trying to save image to DB...");
+    const imageForEvaluation = new tempImage({
+      contentType: file.mimetype,
+      image: optimizedImage.buffer,
+    });
+    const savedImage = await imageForEvaluation.save();
+    savedImageId = savedImage.id;
+    console.log("Saved image successfully, id: " + savedImageId);
+  } catch (error) {
+    throw new CustomError("Image saving to database failed", 500);
+  }
 
-  const savedImage = await imageForEvaluation.save();
-  const savedImageId = savedImage.id;
-  console.log("saved image successfully, id: " + savedImageId);
+  let serpApiResponse: any;
+  try {
+    console.log("Passing the ID to SerpAPI...");
+    serpApiResponse = await serpapi(savedImageId);
+  } catch (error) {
+    throw new CustomError("SerpAPI analysis failed", 500);
+  }
 
-  console.log("pass the id to serpapi");
-  const serpApiResponse = await serpapi(savedImageId);
-  
+  let chatgptResponse: any;
+  let restGptAnalysis: any;
+  try {
+    console.log("Passing the SerpAPI response to ChatGPT...");
+    [chatgptResponse, restGptAnalysis] = await Promise.all([
+      chatgptForBrandAndModel(serpApiResponse),
+      chatgptRestOfAnalysis(optimizedImage.buffer),
+    ]);
+  } catch (error) {
+    throw new CustomError("ChatGPT analysis failed", 500);
+  }
 
-  console.log("pass the serpapi response to chatgpt");
-  const [chatgptResponse, restGptAnalysis] = await Promise.all([
-    chatgptForBrandAndModel(serpApiResponse),
-    chatgptRestOfAnalysis(optimizedImage.buffer),
-  ]);
+  let priceEstimation: any;
+  try {
+    console.log("Analyzing price...");
+    priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse, optimizedImage.buffer);
+    console.log("price estimation: ", priceEstimation);
+  } catch (error) {
+    throw new CustomError("Price analysis failed", 500);
+  }
 
-  const rawFurnitureDetails = {
-    vari: restGptAnalysis.vari || "Ei tiedossa",
-    mitat: {
-      pituus: restGptAnalysis.mitat?.pituus ?? 0,
-      leveys: restGptAnalysis.mitat?.leveys ?? 0,
-      korkeus: restGptAnalysis.mitat?.korkeus ?? 0,
-    },
-    materiaalit: restGptAnalysis.materiaalit || [],
-    kunto: (restGptAnalysis.kunto as NewFurnitureDetails["kunto"]) || "Ei tiedossa",
-  };
+  try {
+    const evaluation: FurnitureDetails = {
+        merkki: chatgptResponse.merkki || "Ei tiedossa",
+        malli: chatgptResponse.malli || "Ei tiedossa",
+        vari: restGptAnalysis.vari || "Ei tiedossa",
+        mitat: {
+          pituus: restGptAnalysis.mitat?.pituus ?? 0,
+          leveys: restGptAnalysis.mitat?.leveys ?? 0,
+          korkeus: restGptAnalysis.mitat?.korkeus ?? 0,
+        },
+        materiaalit: restGptAnalysis.materiaalit || [],
+        kunto: restGptAnalysis.kunto || "Ei tiedossa",
+    };
 
-  const furnitureDetails: NewFurnitureDetails = newFurnitureDetailsSchema.parse(rawFurnitureDetails);
+    return {
+      evaluation,
+      priceEstimation,
+      savedImageId,
+    };
+  } catch (error) {
+    throw new CustomError("Evaluation assembly failed", 500);
+  }
 
-  const priceEstimation = await analyzePrice(restGptAnalysis, chatgptResponse);
-
-  return {
-    evaluation: {
-      brand: chatgptResponse.merkki || "Ei tiedossa",
-      model: chatgptResponse.malli || "Ei tiedossa",
-      color: furnitureDetails.vari,
-      dimensions: {
-        length: restGptAnalysis.mitat?.pituus ?? 0,
-        width: restGptAnalysis.mitat?.leveys ?? 0,
-        height: restGptAnalysis.mitat?.korkeus ?? 0,
-      },
-    materials: furnitureDetails.materiaalit,
-    condition: furnitureDetails.kunto,
-    },
-    priceEstimation,
-    savedImageId,
-  };
 };

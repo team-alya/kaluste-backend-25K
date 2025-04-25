@@ -8,7 +8,6 @@ export const kuntoOptions = [
   "Huono",
   "Ei tiedossa",
 ] as const;
-
 export const serpApiResultSchema = z.object({
   merkki: z
     .string()
@@ -26,6 +25,8 @@ export const serpApiResultSchema = z.object({
       "Anna myös varmuusasteikko 0-1 siitä, kuinka varma tiedosta olet."
     ),
 });
+
+export type SerpApiResult = z.infer<typeof serpApiResultSchema>;
 
 export const newFurnitureDetailsSchema = z
   .object({
@@ -49,7 +50,23 @@ export const newFurnitureDetailsSchema = z
   );
 
 export type NewFurnitureDetails = z.infer<typeof newFurnitureDetailsSchema>;
-export type SerpApiResult = z.infer<typeof serpApiResultSchema>;
+
+export const furnitureDetailsSchema = z.object({
+  merkki: z.string().describe("Huonekalun valmistaja"),
+  malli: z.string().describe("Huonekalun malli"),
+  vari: z.string().describe("Huonekalun väri"),
+  mitat: z
+    .object({
+      pituus: z.number(),
+      leveys: z.number(),
+      korkeus: z.number(),
+    })
+    .describe("Huonekalun mitat senttimetreinä"),
+  materiaalit: z.array(z.string()).describe("Huonekalun materiaalit"),
+  kunto: z.enum(kuntoOptions).describe("Huonekalun kunto"),
+})
+
+export type FurnitureDetails = z.infer<typeof furnitureDetailsSchema>;
 
 export const priceEstimationSchema = z.object({
   recommended_price: z

@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "@/types/customError";
 import logger from "@/utils/logger";
 
+// Custom error handler middleware
+// This middleware handles errors thrown in the application
 export const errorHandler = (
   err: CustomError,
   _req: Request,
@@ -14,6 +16,7 @@ export const errorHandler = (
     401: "Unauthorized;",
     403: "Forbidden;",
     404: "Not Found;",
+    500: "Internal Server Error;",
     502: "Bad Gateway;",
     503: "Service Unavailable;",
     504: "Gateway Timeout;",

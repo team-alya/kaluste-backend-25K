@@ -1,4 +1,4 @@
-// Käynnistystä varten tarvittavat ympäristömuuttujat
+// This file is responsible for loading environment variables and validating them.
 
 interface Config {
   port: number;

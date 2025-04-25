@@ -3,6 +3,7 @@ import createApp from "./app";
 import { connectDB } from "./config/db";
 import config from "./config/startup-envs";
 
+// This function starts the server and connects to the database
 const startServer = async () => {
   await connectDB();
 

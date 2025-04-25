@@ -6,7 +6,7 @@ import { CustomError } from "@/types/customError";
 
 const router = express.Router();
 
-// Löytöreitti
+// Get all brands
 
 router.get(
   "/all",
@@ -22,7 +22,7 @@ router.get(
   }
 );
 
-// Lisäysreitti
+// Add new brand
 
 router.post(
   "/add",
@@ -39,8 +39,14 @@ router.post(
 
     try {
       const newEntry = new ExpertSelectedBrand({});
-      if (brand?.trim()) newEntry.brand = brand.trim();
-      if (model?.trim()) newEntry.model = model.trim();
+      
+      if (brand?.trim()) {
+        newEntry.brand = brand.trim().toLowerCase(); 
+      }
+
+      if (model?.trim()) {
+        newEntry.model = model.trim().toLowerCase();
+      }
 
       await newEntry.save();
       return res
@@ -52,7 +58,7 @@ router.post(
   }
 );
 
-// Poistoreitti
+// Delete brand, model
 
 router.delete(
   "/delete/:id",
@@ -74,7 +80,8 @@ router.delete(
   }
 );
 
-// Muokkausreitti
+// Update brand, model
+
 router.put(
   "/update/:id",
   verifyToken,

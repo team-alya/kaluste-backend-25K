@@ -2,6 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { generateObject } from "ai";
 
+// This file is responsible for analyzing the quality of a photo using GPT-4o
 type PhotoAnalysisResult = {
   main_object_detected: string | null;
   main_object_visibility: number;
@@ -10,6 +11,8 @@ type PhotoAnalysisResult = {
   sharpness: number;
   message: string;
 };
+
+// This schema defines the structure of the photo analysis result
 
 const photoQualitySchema = z.object({
   main_object_detected: z
@@ -45,6 +48,7 @@ const photoQualitySchema = z.object({
     .describe("Dynaaminen viesti perustuen analyysin tuloksiin."),
 });
 
+// This class is responsible for analyzing the quality of a photo using GPT-4o
 export class GPT4Analyzer {
   name = "GPT-4o";
 

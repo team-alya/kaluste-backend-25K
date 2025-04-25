@@ -19,10 +19,10 @@
 - Node.js
 - Express.js
 - OpenAI API
+- SerpApi API
 - MongoDB
 - Docker
-- Memcached
-
+  
 ## Installation
 
 ### Enviromental variables
@@ -31,11 +31,11 @@ Create an .env file in the root folder with the following values (use the .env.e
 
 - OPENAI_API_KEY
 - MONGODB_URI
-- RAHTI_URL
-- LOCAL_URL
 - PORT
-- MEMCACHED_HOST
-- MEMCACHED_PORT
+- ANTHROPIC_API_KEY
+- SERPAPI_API_KEY
+- JWT_SECRET
+
 
 ### Initialize server
 
@@ -60,33 +60,99 @@ npm run start
 
 ### Roadmap
 
-1. Send the image to /api/image 🠊 2. If the properties of the received result object have incorrect values, fix them. Send the furnitureDetails object to /api/price 🠊 3. Make a request to /api/location 🠊 4. Send all further user chat questions to /api/chat 🠊 5. After the converstation is done, send a user review to /api/review
+📷 Taken Photo → /api/photo → /api/image → /api/price → /api/evaluation/check ⇄ /api/evaluation
 
 ### Route details
 
+Below is a list of available API endpoints in this project, grouped by functionality.
+
 | HTTP | Route | Description                                      |
 | ---- | ----- | ------------------------------------------------ |
-| GET  | /ping | Send a request to validate the server is running |
+| GET  | /ping | Sends a request to validate the server is running |
+
+| HTTP | Route | Description                                      | 
+| ---- | ----- | ------------------------------------------------ |
+| POST  | /api/photo | Analyzes the uploaded image quality. Returns a message indicating whether the photo is good or should be retaken. Send an image in raw binary format using HTML multipart/form-data |
 
 | HTTP | Route      | Description                                                                                                                                                  |
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST | /api/image | Send an image in raw binary format using HTML multipart/form-data. Key must be "image" and the image itself as value to recieve an analysis of the furniture |
+| POST | /api/image | Sends the image to the AI for analysis. Returns initial form data including detected brand/model, furniture details and estimated price reasoning. The suggested price is not editable via the UI at the analysis step. Send an image in raw binary format using HTML multipart/form-data. Key must be "image" and the image itself as value to recieve an analysis of the furniture |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET | api/image/:id | This endpoint returns the image based on its ID. The ID is from the 'imageId' field inside the evaluation object |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST | /api/evaluation/check | Checks whether the furniture is needed in stock based on the brand/model and if not AI will check it via furniture details and image. Returns a message indicating demand status to the user. Send brand and model, other furniture details and image in the request body to receive message if furniture is needed |
+
+
+### CRUD operations for storing, updating, or removing furniture item data in the database
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET  | /api/evaluation/all | Gets all furniture item data from database |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST | /api/evaluation/save | Saves all furniture item data to the database |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PUT  | /api/evaluation/:id | Updates furniture item data |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DELETE | /api/evaluation/:id | Removes furniture item data from database |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PATCH  | api/evaluation/:id/status | Updates only the status field of an evaluation. Accepted statuses: "not reviewed", "reviewed", "archived" |
+
+
+### CRUD operations for list of brands or models selected by an expert in the database
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET  | /api/expertSelectedBrand/all | Gets all expert-selected brands and models |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST | /api/expertSelectedBrand/add | Adds a new brand or model entry to the expert-selected list |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PUT  | /api/expertSelectedBrand/update/:id | Updates an existing entry (brand and/or model) by ID |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DELETE | /api/expertSelectedBrand/delete/:id | Removes an expert-selected entry by ID |
+
+### Authentication
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST  | /api/login | Authenticates a user by username and password and returns a JWT token  |
+
+| HTTP | Route      | Description                                                                                                                                                  |
+| ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST | /api/register | Registers a new user account |
 
 | HTTP | Route      | Description                                                           |
 | ---- | ---------- | --------------------------------------------------------------------- |
-| POST | /api/price | Send furniture details in the request body to receive price estimates |
+| POST | /api/users/:id/role | Admin-level endpoint to update users role |
 
-| HTTP | Route     | Description                                                                                                   |
-| ---- | --------- | ------------------------------------------------------------------------------------------------------------- |
-| POST | /api/chat | Send an open question regarding the piece of furniture and the AI will answer it to the best of its abilities |
 
-| HTTP | Route         | Description                                                                                                                                                                                    |
+### Available routes but not in use in UI
+
+| HTTP | Route         | Description                                                                                                                                           |
 | ---- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST | /api/location | Send the user location and a single source, either "donation" or "recycle" or "repair", and the AI will find locations where the user can perform the given activity to the piece of furniture |
+| POST | /api/location | Send the user location coordinates and the AI will find locations where the user can perform recycle to the piece of furniture |
 
-| HTTP | Route       | Description                                                                                                                                                |
-| ---- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| POST | /api/review | Send a review that includes a rating (between 1 and 5) and an optional comment. Prior to using this route, you must have sent a request to the `/api/chat` |
+| HTTP | Route      | Description                                                           |
+| ---- | ---------- | --------------------------------------------------------------------- |
+| POST | /api/price | Separates pricing logic from the image parsing flow. Send SerpApi result with brand and model, other furniture details and image in the request body to receive price estimates |
+
 
 ### Requests and Responses
 

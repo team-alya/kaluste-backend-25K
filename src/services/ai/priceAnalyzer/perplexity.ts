@@ -1,3 +1,6 @@
+// Kaikki alla oleva koodi ei käytössä, koska Perplexityn APIn kutsu kestää liian kauan
+// Käytetään OpenAI:n mallia hinta-analyysiin.
+
 import {
   NewFurnitureDetails,
   PriceEstimation,
@@ -5,12 +8,18 @@ import {
   SerpApiResult,
 } from "@/types/schemas";
 import { openai } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+//import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateObject, generateText } from "ai";
 import dedent from "dedent";
 import dotenv from "dotenv";
 dotenv.config();
 
+type SimpleSerpApiResult = {
+  merkki: string;
+  malli: string;
+};
+
+/*
 const perplexity = createOpenAICompatible({
   name: "perplexity",
   headers: {
@@ -18,6 +27,8 @@ const perplexity = createOpenAICompatible({
   },
   baseURL: "https://api.perplexity.ai/",
 });
+
+
 
 async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, serpApiResult: SerpApiResult) {
   const currentDate = new Date();
@@ -52,8 +63,15 @@ async function perplexityPrizeAnalyse(furnitureDetails: NewFurnitureDetails, ser
   return result.text;
 }
 
+<<<<<<< HEAD
 // Jos brändi ei tiedossa
+async function perplexityPrizeAnalyseUnknownBrand(
+  furnitureDetails: NewFurnitureDetails
+) {
+=======
+// This function is used to analyze the price of a furniture item using Perplexity AI
 async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurnitureDetails) {
+>>>>>>> 8dab1955dd6a15c9af201db097d41a2efdb2f05d
   const result = await generateText({
     model: perplexity("sonar"),
     prompt: `
@@ -86,11 +104,13 @@ async function perplexityPrizeAnalyseUnknownBrand(furnitureDetails: NewFurniture
 
   return result.text;
 }
+*/
+
+// This function generates a price estimation object using OpenAI's GPT-4 model
 
 async function generatePriceObject(
   furnitureDetails: NewFurnitureDetails,
-  perplexityAnalysis: string,
-  serpApiResult: SerpApiResult,
+  serpApiResult: SerpApiResult
 ) {
   const result = await generateObject({
     model: openai("gpt-4o-2024-11-20"),
@@ -115,10 +135,6 @@ async function generatePriceObject(
     Jos analyysi ei ole käyttökelpoinen, tee oma arvio tuotetietojen perusteella.
     Ole kriittinen ja perustele hinta-arviosi huolellisesti.
 
-    <PERPLEXITY ANALYYSI>
-    ${perplexityAnalysis}
-    <PERPLEXITY ANALYYSI>
-
     Anna nyt analyysisi perustuen tuotetietoihin. Arvioi tuotteen hinta käytettyjen tavaroiden markkinoilla Suomessa. Olet itsenäinen hina-arvioija ja vastaat asiakkaalle myyjän näkökulmasta.
     Älä mainitse vastauksessa Perplexity-analyysin lähteenäsi.
     `,
@@ -126,23 +142,20 @@ async function generatePriceObject(
 
   return result.object;
 }
+// This function is used to analyze the price of a furniture item using Perplexity AI
 
 export const analyzePrice = async (
   furnitureDetails: NewFurnitureDetails,
-  serpApiResult: SerpApiResult,
+  serpApiResult: SerpApiResult
 ): Promise<PriceEstimation> => {
   try {
-    const perplexityAnalysis =
-        serpApiResult.merkki === "Ei tiedossa"
-          ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
-          
-          : await perplexityPrizeAnalyse(furnitureDetails, serpApiResult);
-    
-    const result = await generatePriceObject(
-      furnitureDetails,
-      perplexityAnalysis,
-      serpApiResult
-    );
+    /*const perplexityAnalysis =
+      serpApiResult.merkki === "Ei tiedossa"
+        ? await perplexityPrizeAnalyseUnknownBrand(furnitureDetails)
+        : await perplexityPrizeAnalyse(furnitureDetails, serpApiResult);
+    console.log(perplexityAnalysis);
+    */
+    const result = await generatePriceObject(furnitureDetails, serpApiResult);
 
     return result;
   } catch (error) {
@@ -150,3 +163,62 @@ export const analyzePrice = async (
     throw error;
   }
 };
+
+export async function analyzeStockRelevance(
+  furnitureDetails: NewFurnitureDetails, 
+  serpApiResult: SimpleSerpApiResult, 
+  imageBuffer: Buffer): Promise<string> {
+  const result = await generateText({
+    model: openai("gpt-4o"),
+    temperature: 0.7,
+    messages: [
+      {
+        role: "system",
+        content: "Olet kierrätyskeskuksen asiantuntija Suomessa. Arvioi, miksi seuraava huonekalu voisi olla hyödyllinen lisäämään varastoon kuvasta ja tiedoista päätellen.",
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: dedent`
+              Arvioi lyhyesti brändin tai mallin kaupallisesta ja käytännöllisestä näkökulmasta.
+              Jos brändi tai malli ei tiedossa, arvioi sen potentiaali tuotetietojen, käytettävyyden ja kysynnän perusteella.
+
+              Vastaa aina yhdellä lauseella, joka alkaa täsmälleen näin:
+              "Tätä brändiä ja mallia ei tarvita varastossa. Mutta tekoälyn mukaan se voi silti olla hyödyllinen"
+              Sen lauseen loppuun lisää ytimekäs perustelu. Huomioi kieliasu. Älä toista tuotetietoja tai käytä niitä perusteluna.
+              Jos tuotteen kunto on "Kohtalainen" tai "Huono", lisää loppuun ", vaikka sen kunto on kulunut"
+              
+              TUOTETIEDOT:
+              - Ota huomioon tavaran kuva.
+              - Merkki: ${serpApiResult.merkki}
+              - Malli: ${serpApiResult.malli}
+              - Väri: ${furnitureDetails.vari}
+              - Mitat: ${furnitureDetails.mitat.pituus}x${furnitureDetails.mitat.leveys}x${furnitureDetails.mitat.korkeus} cm
+              - Materiaalit: ${furnitureDetails.materiaalit}
+              - Kunto: ${furnitureDetails.kunto}
+
+              Valitse yksi seuraavista syistä ja lisää se lauseeseen, älä arvaa:
+
+              - koska se on tunnettu ja arvostettu brändi
+              - koska sillä on kysyntää markkinoilla
+              - koska sillä on kestävät rakenne ja materiaalit
+              - koska se on ainutlaatuinen
+              - koska se on suosittu nuorten keskuudessa
+              - koska se on käytännöllinen ja monikäyttöinen
+
+              Jos mikään syistä ei sopi vastaa "Varastoon lisääminen ei ole tarpeen, eikä tekoäly näe tavarassa potentiaalia. Haluatko silti lisätä sen?"
+            `,
+          },
+          {
+            type: "image",
+            image: imageBuffer,
+          },
+        ],
+      },
+    ],
+  });
+
+  return result.text;
+}

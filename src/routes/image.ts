@@ -12,6 +12,7 @@ import { processImageAndAnalyze } from "@/services/ai/imageAnalyzer/processImage
 
 const router = express.Router();
 
+// Upload image for evaluation
 router.post(
   "/",
   verifyToken,
@@ -30,12 +31,12 @@ router.post(
         throw new CustomError("User required", 400);
       }
 
-      const { evaluation, priceEstimation, savedImageId: id } =
-        await processImageAndAnalyze(req.file);
+      const { evaluation, savedImageId: id } = await processImageAndAnalyze(
+        req.file
+      );
       savedImageId = id;
 
-
-      return res.json({ evaluation, priceEstimation });
+      return res.json({ evaluation });
     } catch (error) {
       console.error("Pipeline error:", error);
       return next(error);
@@ -44,7 +45,9 @@ router.post(
         try {
           await tempImage.findByIdAndDelete(savedImageId);
           console.log("Image deleted successfully.");
-          console.log(`Analysis finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
+          console.log(
+            `Analysis finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
+          );
         } catch (deleteError) {
           console.error("Error deleting image:", deleteError);
           next(deleteError);
@@ -67,7 +70,7 @@ router.get(
       }
 
       res.setHeader("Content-Type", image.contentType);
-      console.log("Image found, sending to serpAPI")
+      console.log("Image found, sending to serpAPI");
       return res.send(image.image);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -77,6 +80,7 @@ router.get(
 );
 
 // Find evaluation image by id
+
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log("GET image with id...");
@@ -87,7 +91,7 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.setHeader("Content-Type", image.contentType);
-    console.log("Image found, sending image")
+    console.log("Image found, sending image");
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);
