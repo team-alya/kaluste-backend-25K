@@ -1,7 +1,5 @@
 # kaluste-backend
 
-⚠️ **WARNING: This documentation is outdated and corresponds to git TAG v1.0. The codebase has evolved significantly since this version. Only section [Vision Pipeline](#vision-pipeline) and text after it is up to date. Please refer to the latest code for other implementation details.**
-
 Älyä-hankkeessa KalusteArvio-projektin palvelin ja tekoälyliittymät
 
 ## Table of Contents
@@ -10,7 +8,7 @@
 - [Installation](#installation)
 - [API Documentation](#api-documentation)
 - [Docker Instructions](#docker-instructions)
-- [Cache](#cache)
+- [Vision Pipeline](#vision-pipeline)
 - [Database](#database)
 
 ## Technologies
@@ -250,23 +248,6 @@ To stop the running Memcached container, use the following command:
 docker-compose -f docker-compose-local-cache.yml down
 ```
 
-## Cache
-
-We use [Memcached](https://memcached.org/) for caching in development.
-
-### Key Features
-
-- Caches furniture price data using `brand+model` as key
-- 24 hour cache expiration
-- Checks cache before new price scrapes
-- Cache clears on server restart
-
-### Setup
-
-- Follow Docker Instructions to setup Memcached.
-
-Note: Caching is currently disabled in production.
-
 ## Database
 
 This project uses [MongoDB](https://www.mongodb.com/) as its database solution and [mongoose](https://mongoosejs.com/) to interact with MongoDB.
@@ -289,111 +270,86 @@ The schema for the database documents is declared in the [log.ts](/src/models/lo
 
 ## Vision Pipeline
 
-> **Note**: This section is up to date. _Last updated: January 3, 2025_
+> **Note**: _Last updated: April 25, 2025_
 
 The Vision Pipeline process works as follows:
 
 1. User uploads a furniture image through the Frontend UI
-2. Image is processed and sent to multiple AI vision models in asynchronously:
-   - GPT-4o
-   - Claude-3-5-Sonnet
-   - Gemini-2-0-Flash
-3. As each model completes analysis:
-   - If both brand and model are found, return that result immediately
-   - If brand or model is missing but more results pending, wait for next result
-   - If no complete results found and all results processed, combine best partial results
-4. If brand is still missing after combining results, make final attempt with GPT-4o-2024-11-20 which has been specifically instructed to provide its best guess for at least the brand
-5. Present results in editable form for user verification
-6. After user verification, proceed to Price Analysis Pipeline
+2. Image is sended to AI to check its quality
+3. If image is ok, it is processed and sent to SerpApi for brand and model search
+4. Next step is AI GPT-4o vision model, which generating all others details
+5. If brand and model not found in step nr. 3, make attempt with GPT-4o which has been specifically instructed to provide its best guess for at least the brand
+6. Proceed to Price Analysis with all furniture details and image with GPT-4o
+7. Present results in editable form exept price for user verification
+8. Before saving to DB checking if brand or model is needed in stock, if no need AI will do analysis if it is valuable
+
+## Vision Pipeline Process
+
+This diagram illustrates the Vision Pipeline process for furniture analysis, including the user interaction, AI checks, and database interactions.
 
 ```mermaid
 flowchart TD
-    User([User])
-
-    subgraph FrontendProcessing[React Vite Frontend]
-        User --> FrontendUI[Frontend UI]
-        FrontendUI -->|Upload furniture image| ImageUpload[Image Upload]
-        ResultsReceived[Receive Results] --> EditableForm[Editable Form<br>for User Verification]
-        EditableForm -->|User verifies/edits| SendToAnalysis[Send to Analysis]
-        Chatbot[Chatbot UI<br>Display Results] --> User
+    subgraph User
+        A1[Upload furniture image]
     end
 
-    ImageUpload --> ImageProcess[Image Processing]
-
-    subgraph NodeBackend[Node.js Backend]
-        ImageProcess --> |Start All Models| AsyncModels[Async Vision Models]
-
-        subgraph AsyncModels[Running Asynchronously]
-            direction LR
-            GPT4[GPT-4o Vision<br>Analyze furniture details]
-            Claude[Claude-3-5-Sonnet Vision<br>Analyze furniture details]
-            Gemini[Gemini-2-0-Flash Vision<br>Analyze furniture details]
-        end
-
-        AsyncModels --> |As Results Complete| ResultCheck{Check Each Result<br>Brand & Model Found?}
-
-        ResultCheck -->|Yes| StopAndUse[Return First<br>Valid Result]
-        ResultCheck -->|No & More Results<br>Pending| WaitNext[Wait for Next<br>Result]
-        WaitNext --> ResultCheck
-
-        ResultCheck -->|No & All Results<br>Processed| CombineResults[Combine Best<br>Partial Results]
-
-        CombineResults --> CheckBrand{Brand Found?}
-        CheckBrand -->|Yes| SendToFrontend[Send Results<br>to Frontend]
-        CheckBrand -->|No| FinalGPT4[GPT-4o-2024-11-20<br>Final Attempt]
-        FinalGPT4 --> SendToFrontend
-
-        StopAndUse --> SendToFrontend
-
-        SendToFrontend --> ResultsReceived
-
-        SendToAnalysis --> PriceAnalysis[Price Analysis Pipeline]
-        PriceAnalysis --> Chatbot
+    subgraph Frontend
+        B1[Send image to GPT-4 for quality check]
+        B2[If OK, send image to SerpApi for brand/model search]
+        B3[If brand/model not found, fallback to GPT-4 for best guess]
+        B4[Present editable results to user]
+        B5[Check if brand/model needed in stock]
     end
 
-    style NodeBackend fill:#f0f8ff
-    style FrontendProcessing fill:#e6ffe6
-    style AsyncModels fill:#e6ffe6
-    style ResultCheck fill:#fff0f0
-    style EditableForm fill:#90EE90
-    style StopAndUse fill:#98FB98
-    style FinalGPT4 fill:#FFB6C1
-    style CheckBrand fill:#fff0f0
-    style PriceAnalysis fill:#DDA0DD
-    style SendToFrontend fill:#FFE4B5
-    style ImageUpload fill:#FFE4B5
-    style SendToAnalysis fill:#FFE4B5
-```
-
-## Price Analysis Pipeline
-
-The price analysis process uses Perplexity AI and GPT-4o to generate market-based price estimations for furniture. Here's how the price analysis pipeline works:
-
-1. After furniture details are verified by the user, they are sent to Perplexity AI
-2. Perplexity analyzes the furniture details and produces a market analysis
-3. The market analysis is processed by GPT-4o, which generates a structured JSON response
-4. The price estimation is returned directly to the user
-
-```mermaid
-flowchart TD
-    Start([Verified Furniture Details]) --> Perplexity[Perplexity Analysis<br>sonar]
-
-    subgraph PriceAnalysisPipeline[Price Analysis Pipeline]
-        Perplexity -->|Market Analysis Text| GPT4[GPT-4o-2024-11-20<br>JSON Object Generation]
-
-        subgraph DataFlow[Data Flow]
-            direction LR
-            FurnitureDetails[/Furniture Details/] --> PerplexityAnalysis[/Market Analysis Result/]
-            PerplexityAnalysis --> PriceJSON[/Price Estimation JSON/]
-        end
+    subgraph GPT-4
+        C1[Check image quality]
+        C2[Generate additional furniture details]
+        C3[Guess brand/model if needed]
+        C4[Price Analysis]
+        C5[Analyze if non-needed item is still valuable]
     end
 
-    GPT4 --> Response([Response to User])
+    subgraph SerpApi
+        D1[Search brand and model]
+    end
 
-    style PriceAnalysisPipeline fill:#FFE6FF
-    style DataFlow fill:#E6E6FF
-    style Perplexity fill:#B0C4DE
-    style GPT4 fill:#FFB6C1
+    subgraph Database
+        F1[Save item if needed or valuable]
+    end
+
+    A1 --> B1
+    B1 --> C1
+    C1 --> B2
+    B2 --> D1
+    D1 --> B3
+    B3 --> C3
+    B2 --> C2
+    C4 --> B4
+    C2 --> C4
+    C3 --> C2
+    B4 --> B5
+    B5 -->|If needed| F1
+    B5 -->|If not needed| C5
+    C5 --> F1
+
+    style A1 fill:#FFDDC1,stroke:#FF5733,stroke-width:2px, color:#333
+
+    style B1 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
+    style B2 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
+    style B3 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
+    style B4 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
+    style B5 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
+
+    style C1 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+    style C2 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+    style C3 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+    style C4 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+    style C5 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+
+    style F1 fill:#F1948A,stroke:#E74C3C,stroke-width:2px, color:#333
+
+    style D1 fill:#28B463,stroke:#1F8A44,stroke-width:2px, color:#fff
+    
 ```
 
 ## To Developer
