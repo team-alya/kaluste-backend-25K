@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: dev.Dockerfile
     ports:
-      - "3000:3000"  # Oletan, että sovelluksesi käyttää porttia 3000
+      - "3000:3000"
     volumes:
       - ./:/usr/src/app
       - /usr/src/app/node_modules
