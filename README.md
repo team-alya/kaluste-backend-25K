@@ -156,25 +156,30 @@ Below is a list of available API endpoints in this project, grouped by functiona
 
 ### Requests and Responses
 
+> #### /api/photo
+>
+> ![api_chat_postman](./screenshots-main/api_photo_postman.png)
+
 > #### /api/image
 >
-> ![api_image_postman](./screenshots/api_image_postman.PNG)
+> ![api_image_postman](./screenshots-main/api_image_postman.png)
+
+> #### /api/evaluation/check
+>
+> ![api_image_postman](./screenshots-main/api_check_postman.png)
+
+> #### /api/expertSelectedBrand
+>
+> ![api_location_postman](./screenshots-main/api_expertBrandAndModel_postman.png)
 
 > #### /api/price
 >
-> ![api_price_postman](./screenshots/api_price_postman.PNG)
-
-> #### /api/chat
->
-> ![api_chat_postman](./screenshots/api_chat_postman.PNG)
+> ![api_price_postman](./screenshots-main/api_price_postman.png)
 
 > #### /api/location
 >
-> ![api_location_postman](./screenshots/api_location_postman.PNG)
+> ![api_location_postman](./screenshots-main/api_location_postman.png)
 
-> #### /api/review
->
-> ![api_review_postman](./screenshots/api_review_postman.PNG)
 
 ## Docker Instructions
 
