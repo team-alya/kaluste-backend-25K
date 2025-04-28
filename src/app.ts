@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import { timeout } from "./middleware/timeout";
 import routes from "./routes";
 
+// This function creates an Express application and sets up middleware and routes
 const createApp = () => {
   const app = express();
 
