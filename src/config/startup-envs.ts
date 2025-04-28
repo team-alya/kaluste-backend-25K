@@ -7,9 +7,6 @@ interface Config {
   };
   apis: {
     openai: string;
-    anthropic: string;
-    google: string;
-    perplexity: string;
   };
   jwtSecret: string;
 }
@@ -22,9 +19,6 @@ const getConfig = (): Config => {
     },
     apis: {
       openai: process.env.OPENAI_API_KEY || "",
-      anthropic: process.env.ANTHROPIC_API_KEY || "",
-      google: process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
-      perplexity: process.env.PERPLEXITY_API_KEY || "",
     },
     jwtSecret: process.env.JWT_SECRET || "",
   };
@@ -32,9 +26,6 @@ const getConfig = (): Config => {
   const required = [
     "mongodb.uri",
     "apis.openai",
-    "apis.anthropic",
-    "apis.google",
-    "apis.perplexity",
   ];
   required.forEach((path) => {
     const value = path.split(".").reduce((obj, key) => obj[key], config as any);
