@@ -342,7 +342,7 @@ router.post("/check", verifyToken, requiredRole("user", "expert", "admin"), imag
 });
 
 
-
+/* 
 router.post(
   "/save",
   verifyToken,
@@ -395,7 +395,7 @@ router.post(
     }
   }
 );
-
+*/
 
 // Delete evaluation
 

@@ -31,12 +31,13 @@ router.post(
         throw new CustomError("User required", 400);
       }
 
-      const { evaluation, savedImageId: id } = await processImageAndAnalyze(
+      const { evaluation, priceEstimation, imageId: id } = await processImageAndAnalyze(
         req.file
       );
       savedImageId = id;
 
-      return res.json({ evaluation });
+      return res.json({ evaluation, priceEstimation, imageId: id });
+
     } catch (error) {
       console.error("Pipeline error:", error);
       return next(error);
