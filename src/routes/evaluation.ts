@@ -274,70 +274,69 @@ router.post(
 // Check if brand or model is wanted
 
 router.post("/check", verifyToken, requiredRole("user", "expert", "admin"), imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
-
   try {
+    // Ota suomenkieliset muuttujat req.body:stä
+    const { merkki, malli, vari, mitat, materiaalit, kunto } = req.body;
 
-    const { brand, model, color, dimensions, materials, condition } = req.body;
-    
     if (!req.file) {
       throw new CustomError("Image not given", 400);
     }
 
     const optimizedImage = await resizeImage(req.file.buffer);
 
-      if (!brand || !model) {
-        throw new CustomError("Brand and model are required", 400);
-      }
+    if (!merkki || !malli) {
+      throw new CustomError("Merkki ja malli ovat pakollisia", 400);
+    }
 
-      const query: any = {};
-      if (brand) query.brand = brand.toLowerCase();
-      if (model) query.model = model.toLowerCase();
+    const query: any = {};
+    if (merkki) query.brand = merkki.toLowerCase();
+    if (malli) query.model = malli.toLowerCase();
 
-      console.log("Checking if brand or model are wanted...")
-      const existingBrand = await ExpertSelectedBrand.findOne({
-        $or: [{ brand }, { model }]
+    console.log("Checking if brand or model are wanted...");
+    const existingBrand = await ExpertSelectedBrand.findOne({
+      $or: [{ brand: merkki }, { model: malli }],
+    });
+
+    if (existingBrand) {
+      return res.status(200).json({
+        message: "Brändi ja/tai malli tarvitaan varastoon.",
+        required: true,
+        reason: "brand_in_stock",
       });
+    }
 
-      if (existingBrand) {
-          return res.status(200).json({
-              message: "Brändi ja/tai malli tarvitaan varastoon.",
-              required: true,
-              reason: "brand_in_stock",
-          });
-        } 
-   
-      if (expensiveBrands.includes(brand)) {
-          return res.status(200).json({
-              message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
-              required: true,
-              reason: "expensive_brand",
-          });
-        }
+    if (expensiveBrands.includes(merkki)) {
+      return res.status(200).json({
+        message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
+        required: true,
+        reason: "expensive_brand",
+      });
+    }
 
-        // AI vastaus
-        const serpApiResult = {
-          merkki: brand,
-          malli: model,
-        };
-        
-        const furnitureDetails = {
-          vari: color,
-          mitat: dimensions,
-          materiaalit: materials,
-          kunto: condition,
-        };
-        // AI analyysi
-        const aiExplanation = await analyzeStockRelevance(furnitureDetails, serpApiResult, optimizedImage.buffer);
+    // AI vastaus
+    const serpApiResult = {
+      merkki,
+      malli,
+    };
 
-        return res.status(200).json({
-          message: aiExplanation,
-          required: false,
-          reason: "not_required_in_stock",
-        });
-    
+    const furnitureDetails = {
+      vari,
+      mitat,
+      materiaalit,
+      kunto,
+    };
+
+    // AI analyysi
+    const aiExplanation = await analyzeStockRelevance(furnitureDetails, serpApiResult, optimizedImage.buffer);
+
+    return res.status(200).json({
+      message: aiExplanation,
+      required: false,
+      reason: "not_required_in_stock",
+    });
   } catch (error) {
-      console.error("Error checking model", error);
-      return next(error);
+    console.error("Error checking model", error);
+    return next(error);
   }
 });
 
