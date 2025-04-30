@@ -11,7 +11,7 @@ import adminRoutes from "./admin";
 const router = Router();
 // ping route for health check
 router.get("/ping", (_req, res) => {
-  res.send("pong");
+  res.send("pong!");
 });
 
 // Define routes

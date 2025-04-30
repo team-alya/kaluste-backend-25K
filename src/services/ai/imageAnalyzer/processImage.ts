@@ -3,7 +3,7 @@ import tempImage from "@/middleware/models/tempImage";
 import { serpapi } from "@/services/ai/imageAnalyzer/serpApi_analyzer";
 import { chatgptForBrandAndModel } from "@/services/ai/dataAnalyzer/gpt4-Analyzer";
 import { chatgptRestOfAnalysis } from "@/services/ai/imageAnalyzer/gpt4-analyzer";
-import { FurnitureDetails } from "@/types/schemas";
+import { FurnitureDetails} from "@/types/schemas";
 import { CustomError } from "@/types/customError";
 import { analyzePrice } from "@/services/ai/priceAnalyzer/priceFunction";
 
@@ -74,10 +74,15 @@ export const processImageAndAnalyze = async (file: Express.Multer.File) => {
         kunto: restGptAnalysis.kunto || "Ei tiedossa",
     };
 
+    const priceEstimationFormatted = {
+      recommended_price: priceEstimation.recommended_price || 0,
+      price_reason: priceEstimation.price_reason || ["Ei tiedossa"]
+    };
+
     return {
       evaluation,
-      priceEstimation,
-      savedImageId,
+      priceEstimation: priceEstimationFormatted,
+      imageId: savedImageId,
     };
   } catch (error) {
     throw new CustomError("Evaluation assembly failed", 500);
