@@ -19,7 +19,7 @@ const router = express.Router();
 router.get(
   "/all",
   verifyToken,
-  requiredRole("expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   async (_req, res: Response, next: NextFunction) => {
     try {
       console.log("Searching for evaluations...")
@@ -39,7 +39,7 @@ router.get(
 router.get(
   "/:id",
   verifyToken,
-  requiredRole("expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       console.log("GET evaluation with id...")
