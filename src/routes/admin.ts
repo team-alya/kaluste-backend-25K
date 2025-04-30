@@ -62,6 +62,23 @@ router.get(
     }
   }
 );
+// Get user by id
+router.get(
+  "/:id",
+  verifyToken,
+  requiredRole("admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const users = await User.findById(id, "-password"); // selectin poistamalla saa salasanan näkyville
+      console.log("Users fetched successfully");
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return next(error);
+    }
+  }
+);
 
 // Edit user
 
