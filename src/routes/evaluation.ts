@@ -11,7 +11,7 @@ import fs from "fs";
 import { verifyToken } from "@/middleware/auth";
 import { requiredRole } from "@/middleware/roleChecker";
 import multer from "multer";
-import { analyzeStockRelevance } from "@/services/ai/priceAnalyzer/perplexity";
+import { analyzeStockRelevance } from "@/services/ai/stockAnalyzer/stockRelevanceAnalyzer";
 const upload = multer();
 const router = express.Router();
 
