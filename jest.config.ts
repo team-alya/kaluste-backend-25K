@@ -1,6 +1,7 @@
 import type { Config } from 'jest';
 
 const config: Config = {
+  setupFiles: ["dotenv/config"],
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
@@ -11,6 +12,7 @@ const config: Config = {
     }],
   },
   moduleNameMapper: {
+    '^src/(.*)$': '<rootDir>/src/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
