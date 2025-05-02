@@ -21,23 +21,18 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     let savedImageId = "";
     const startTime = Date.now();
-
     try {
       if (!req.file || !req.file.buffer) {
         throw new CustomError("No image file provided", 400);
       }
-
       if (!req.user) {
         throw new CustomError("User required", 400);
       }
 
-      const { evaluation, priceEstimation, imageId: id } = await processImageAndAnalyze(
-        req.file
-      );
-      savedImageId = id;
-
-      return res.json({ evaluation, priceEstimation, imageId: id });
-
+      const { evaluation, priceEstimation, imageId } =
+        await processImageAndAnalyze(req.file);
+      savedImageId = imageId;
+      return res.json({ evaluation, priceEstimation });
     } catch (error) {
       console.error("Pipeline error:", error);
       return next(error);
@@ -63,15 +58,11 @@ router.get(
   "/serpapi/:id",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("GET image with id...");
       const image = await tempImage.findById(req.params.id);
-
       if (!image) {
         throw new CustomError("Image not found", 404);
       }
-
       res.setHeader("Content-Type", image.contentType);
-      console.log("Image found, sending to serpAPI");
       return res.send(image.image);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -84,7 +75,6 @@ router.get(
 
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    console.log("GET image with id...");
     const image = await Image.findById(req.params.id);
 
     if (!image) {
@@ -92,7 +82,6 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
     }
 
     res.setHeader("Content-Type", image.contentType);
-    console.log("Image found, sending image");
     return res.send(image.image);
   } catch (error) {
     console.error("Error fetching image:", error);

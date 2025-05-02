@@ -8,6 +8,7 @@ export const kuntoOptions = [
   "Huono",
   "Ei tiedossa",
 ] as const;
+
 export const serpApiResultSchema = z.object({
   merkki: z
     .string()
@@ -64,7 +65,7 @@ export const furnitureDetailsSchema = z.object({
     .describe("Huonekalun mitat senttimetreinä"),
   materiaalit: z.array(z.string()).describe("Huonekalun materiaalit"),
   kunto: z.enum(kuntoOptions).describe("Huonekalun kunto"),
-})
+});
 
 export type FurnitureDetails = z.infer<typeof furnitureDetailsSchema>;
 
@@ -83,3 +84,19 @@ export const priceEstimationSchema = z.object({
 });
 
 export type PriceEstimation = z.infer<typeof priceEstimationSchema>;
+
+export interface OptimizedImage {
+  buffer: Buffer;
+  base64: string;
+  metadata: {
+    width: number;
+    height: number;
+    format: string;
+    megapixels: number;
+  };
+}
+
+export interface ChatGptAnalysisResult {
+  chatgptResponse: SerpApiResult;
+  restGptAnalysis: NewFurnitureDetails;
+}
