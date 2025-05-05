@@ -390,7 +390,6 @@ router.put(
 
       console.log("Evaluation found, starting update...")
       try {
-        console.log("req.body: ", req.body);
         const newEvaluation = {
           brand: req.body.merkki || evaluation?.evaluation?.brand,
           model: req.body.malli || evaluation?.evaluation?.model,
@@ -403,16 +402,15 @@ router.put(
           materials:
             req.body.materiaalit || evaluation?.evaluation?.materials,
           condition: req.body.kunto || evaluation?.evaluation?.condition,
-          priceEstimation: {
-            recommended_price: 
-              req.body.recommended_price ??
-              evaluation?.priceEstimation?.recommended_price,
-            price_reason: req.body.price_reason
-              ? Array.isArray(req.body.price_reason)
-                ? req.body.price_reason
-                : [req.body.price_reason]
-              : evaluation?.priceEstimation?.price_reason,
-          },
+        }
+
+        const newPriceEstimation = {
+          recommended_price: req.body.priceEstimation?.recommended_price ?? evaluation?.priceEstimation?.recommended_price,
+          price_reason: req.body.priceEstimation?.price_reason
+            ? Array.isArray(req.body.priceEstimation.price_reason)
+              ? req.body.priceEstimation.price_reason
+              : [req.body.priceEstimation.price_reason]
+            : evaluation?.priceEstimation?.price_reason,
         }
 
         const newStatus = req.body.status || evaluation?.status;
@@ -424,7 +422,17 @@ router.put(
 
         const newDescription = req.body.description || evaluation?.description;
 
-        const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation, status: newStatus, description: newDescription }, { new: true });
+        const updatedEvaluation = await Evaluation.findByIdAndUpdate(
+          req.params.id, 
+          { 
+            evaluation: newEvaluation, 
+            priceEstimation: newPriceEstimation,
+            status: newStatus, 
+            description: newDescription 
+          }, 
+          { new: true }
+        );
+        
         console.log("Update successful, returning updated evaluation")
         console.log(`Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
         return res.json(updatedEvaluation);
