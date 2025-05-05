@@ -62,6 +62,23 @@ router.get(
     }
   }
 );
+// Get user by id
+router.get(
+  "/:id",
+  verifyToken,
+  requiredRole("admin"),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const users = await User.findById(id, "-password"); // selectin poistamalla saa salasanan näkyville
+      console.log("User fetched successfully");
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return next(error);
+    }
+  }
+);
 
 // Edit user
 
@@ -73,49 +90,74 @@ router.put(
     try {
       const { id } = req.params;
       const { username, email, firstname, lastname, role } = req.body;
-      const user = await User.findById(id, "-password");
-      
-      if (!user) {
-        throw new CustomError("User not found.", 404);
-      }     
-      console.log("User found, updating...");
 
-      try {
-        if (!username && !email && !firstname && !lastname && !role) {
-          throw new CustomError("No update data provided", 400);
-        }
+      const errors: { [key: string]: string } = {};
 
-        if (role) {
-          const validRoles = ["user", "admin", "expert"];
-          if (!validRoles.includes(role)) {
-            throw new CustomError("Invalid role specified.", 400);
-          }
-        }
-
-        const editUser = {
-          username: username || user.username,
-          email: email || user.email,
-          firstname: firstname || user.firstname,
-          lastname: lastname || user.lastname,
-          role: role || user.role
-        };
-
-        const updatedUser = await User.findByIdAndUpdate(
-          id, 
-          { ...editUser }, 
-          { new: true }
-        ).select("-password");
-        
-        console.log("User updated successfully");
-        return res.status(200).json({ 
-          message: "User updated successfully.", 
-          user: updatedUser
-        });
-        
-      } catch (error) {
-        return next(error);
+      if (!username && !email && !firstname && !lastname && !role) {
+        errors.update = "Ei päivitettävää tietoa.";
+        throw new CustomError("Ei päivitettävää tietoa.", 400);
       }
+
+      const user = await User.findById(id, "-password");
+      if (!user) {
+        errors.user = "Käyttäjää ei löytynyt.";
+        throw new CustomError("Käyttäjää ei löytynyt.", 404);
+      }
+
+      if (username && username !== user?.username) {
+        const existingUser = await User.findOne({
+          username: { $regex: `^${username}$`, $options: "i" },
+          _id: { $ne: id },
+        });
+        if (existingUser) {
+          errors.username = "Käyttäjätunnus on jo käytössä.";
+          throw new CustomError("Käyttäjätunnus on jo käytössä.", 400);
+        }
+      }
+
+      if (email && email !== user?.email) {
+        const existingEmail = await User.findOne({
+          email: { $regex: `^${email}$`, $options: "i" },
+          _id: { $ne: id },
+        });
+        if (existingEmail) {
+          errors.email = "Sähköpostiosoite on jo käytössä.";
+          throw new CustomError("Sähköpostiosoite on jo käytössä.", 400);
+        }
+      }
+
+      if (role) {
+        const validRoles = ["user", "admin", "expert"];
+        if (!validRoles.includes(role)) {
+          errors.role = "Kyseistä roolia ei ole.";
+          throw new CustomError("Kyseistä roolia ei ole.", 400);
+        }
+      }
+
+      if (Object.keys(errors).length > 0) {
+        return res.status(400).json({ errors });
+      }
+
+      const editUser = {
+        username: username || user?.username,
+        email: email || user?.email,
+        firstname: firstname || user?.firstname,
+        lastname: lastname || user?.lastname,
+        role: role || user?.role,
+      };
+
+      const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { ...editUser },
+        { new: true }
+      ).select("-password");
+
+      return res.status(200).json({
+        message: "Käyttäjätiedot on päivitetty onnistuneesti.",
+        user: updatedUser,
+      });
     } catch (error) {
+      console.error("Virhe päivittäessä käyttäjätietoja", error);
       return next(error);
     }
   }
@@ -152,17 +194,33 @@ router.post("/register", verifyToken, requiredRole("admin"), async (req: Request
   try {
     const { username, password, email, firstname, lastname, role } = req.body;
 
-    const existingUser = await User.findOne({ username });
+    const errors: { [key: string]: string } = {};
 
+    const existingUser = await User.findOne({ username: { $regex: `^${username}$`, $options: "i" } });
     if (existingUser) {
-      throw new CustomError("This username is already taken.", 400);
+      errors.username = "Tämä käyttäjätunnus on jo käytössä.";
     }
 
+    const existingEmail = await User.findOne({ email: { $regex: `^${email}$`, $options: "i" } });
+    if (existingEmail) {
+      errors.email = "Tämä sähköpostiosoite on jo käytössä.";
+    }
+
+    const passwordTooShort = password.length < 6;
+    if (passwordTooShort) {
+      errors.password = "Salasanan pituuden tulee olla vähintään 6 merkkiä.";
+    }
+    // Tarkista, onko rooli kelvollinen
     if (role) {
       const validRoles = ["user", "admin", "expert"];
       if (!validRoles.includes(role)) {
-        throw new CustomError("Invalid role specified.", 400);
+        errors.role = "Kyseinen rooli ei ole sallittu.";
       }
+    }
+
+    // Jos virheitä on, palautetaan ne
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ errors });
     }
 
     const newUser = new User({ username, password, email, firstname, lastname, role });
@@ -171,7 +229,7 @@ router.post("/register", verifyToken, requiredRole("admin"), async (req: Request
     const token = tokenGenerator(newUser.username);
     return res.status(201).json({
       token,
-      message: "New user created successfully!",
+      message: "Uusi käyttäjä luotu onnistuneesti.",
       user: {
         id: newUser._id,
         username: newUser.username,
