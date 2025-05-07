@@ -94,7 +94,10 @@ router.post(
           materials: req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
         },
-        priceEstimation: req.body.priceEstimation,
+        priceEstimation: JSON.parse(req.body.priceEstimation) || {
+          recommended_price: 0,
+          price_reason: ["Ei tiedossa"],
+        },
         user: req.user?.username,
       });
 
@@ -138,8 +141,8 @@ router.post(
           materiaalit: ["nahka"],
           kunto: "Huono",
           priceEstimation: {
-            suositus_hinta: 150,
-            perustelu: [
+            recommended_price: 150,
+            price_reason: [
               "Huonokuntoinen nahkasohva",
               "Suuri koko voi vaikeuttaa myyntiä",
               "Brändi tunnettu laadusta",
@@ -155,8 +158,8 @@ router.post(
           materiaalit: ["kangas", "puu"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 400,
-            perustelu: [
+            recommended_price: 400,
+            price_reason: [
               "Hyväkuntoinen designsohva",
               "Neutraali väri nostaa arvoa",
               "Materiaalit kestäviä",
@@ -172,8 +175,8 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Kohtalainen",
           priceEstimation: {
-            suositus_hinta: 120,
-            perustelu: [
+            recommended_price: 120,
+            price_reason: [
               "Kohtalaisessa kunnossa oleva tuoli",
               "Tunnettu valmistaja",
               "Kompakti koko",
@@ -189,8 +192,8 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 200,
-            perustelu: [
+            recommended_price: 200,
+            price_reason: [
               "Tyylihuonekalu hyvässä kunnossa",
               "Klassinen design",
               "Sopii moneen sisustukseen",
@@ -206,8 +209,8 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 250,
-            perustelu: [
+            recommended_price: 250,
+            price_reason: [
               "Koristeellinen design-tuoli",
               "Erinomainen kunto",
               "Laadukas valmistaja",
@@ -404,17 +407,16 @@ router.put(
           },
           materials: req.body.materiaalit || evaluation?.evaluation?.materials,
           condition: req.body.kunto || evaluation?.evaluation?.condition,
-          priceEstimation: {
-            suositus_hinta:
-              req.body.suositus_hinta ??
-              evaluation?.priceEstimation?.suositus_hinta,
-            perustelu: req.body.perustelu
-              ? Array.isArray(req.body.perustelu)
-                ? req.body.perustelu
-                : [req.body.perustelu]
-              : evaluation?.priceEstimation?.perustelu,
-          },
-        };
+        }
+
+        const newPriceEstimation = {
+          recommended_price: req.body.priceEstimation?.recommended_price ?? evaluation?.priceEstimation?.recommended_price,
+          price_reason: req.body.priceEstimation?.price_reason
+            ? Array.isArray(req.body.priceEstimation.price_reason)
+              ? req.body.priceEstimation.price_reason
+              : [req.body.priceEstimation.price_reason]
+            : evaluation?.priceEstimation?.price_reason,
+        }
 
         const newStatus = req.body.status || evaluation?.status;
         const validStatusList = ["not reviewed", "reviewed", "archived"];
@@ -426,17 +428,18 @@ router.put(
         const newDescription = req.body.description || evaluation?.description;
 
         const updatedEvaluation = await Evaluation.findByIdAndUpdate(
-          req.params.id,
-          {
-            evaluation: newEvaluation,
-            status: newStatus,
-            description: newDescription,
-          },
+          req.params.id, 
+          { 
+            evaluation: newEvaluation, 
+            priceEstimation: newPriceEstimation,
+            status: newStatus, 
+            description: newDescription 
+          }, 
           { new: true }
         );
-        console.log(
-          `Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
-        );
+        
+        console.log(`Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
+
         return res.json(updatedEvaluation);
       } catch (error) {
         return next(error);
