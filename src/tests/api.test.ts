@@ -107,3 +107,72 @@ describe('POST /api/image', () => {
     await mongoose.disconnect();
   });
 });
+
+//  Evaluation api tests ------------------------------------------------------------------------------------------------------------------
+
+
+// Photo quality api test ------------------------------------------------------------------------------------------------------------------
+describe('POST /api/photo/', () => {
+  const seconds: number = 1000;
+  let token: string;
+
+  beforeAll(async () => {
+    await mongoose.connect(config.mongodb.uri);
+    const loginRes = await request(app)
+      .post('/api/login')
+      .send({ username: 'Admin', password: 'Admin' })
+    token = loginRes.body.token;
+  });
+
+  it('Should fail with a fake token', async () => {
+    const fakeToken = "fake-token";
+
+    const res = await request(app)
+      .post('/api/image')
+      .set('Authorization', `Bearer ${fakeToken}`)
+      .send();
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toBe("Invalid token");
+  });
+
+  it('Should fail without an image', async () => {
+    const res = await request(app)
+      .post('/api/image')
+      .set('Authorization', `Bearer ${token}`)
+      .send();
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.error).toBe('No image file provided');
+  });
+
+  it('Should give feedback on poor quality image', async () => {
+    const imagePath = path.join(__dirname, 'images', 'artek-huonolaatuinen-kuva.png')
+    const res = await request(app)
+      .post('/api/photo')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('image', imagePath);
+
+    expect(res.body.message).not.toBe('Kuva vaikuttaa hyvälaatuiselta. Voimme jatkaa analyysiä.');
+    expect(res.body.photo_quality_score).toBeLessThan(80);
+  }, 30 * seconds); // Set timeout to be longer than default so test doesn't crash
+
+  it('Should process good image correctly', async () => {
+    const imagePath = path.join(__dirname, 'images', 'artek-jakkara.jpg');
+    const res = await request(app)
+      .post('/api/photo')
+      .set('Authorization', `Bearer ${token}`)
+      .attach('image', imagePath);
+
+    expect(res.body.message).toBe('Kuva vaikuttaa hyvälaatuiselta. Voimme jatkaa analyysiä.');
+    expect(res.body.photo_quality_score).toBeGreaterThanOrEqual(75);
+    expect(res.body.main_object_visibility).toBeGreaterThanOrEqual(85);
+    expect(res.body.main_object_detected).not.toBe('Ei tunnistettu');
+  }, 30 * seconds); // Set timeout to be longer than default so test doesn't crash
+
+  afterAll(async () => {
+    await mongoose.disconnect();
+  });
+});
+
+// Admin api tests ------------------------------------------------------------------------------------------------------------------
