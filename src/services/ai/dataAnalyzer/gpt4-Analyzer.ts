@@ -1,9 +1,9 @@
 import { SerpApiResult, serpApiResultSchema } from "@/types/schemas";
 import { openai } from "@ai-sdk/openai";
 import { generateObject } from "ai";
-import { BaseResponse } from "serpapi";
-import { dataAnalyzerGPT4oSystemMsg } from "../prompts/prompts";
+import { dataAnalyzerGPT4oSystemMsg, systemRole } from "../prompts/prompts";
 import dotenv from "dotenv";
+import { BaseResponse } from "serpapi";
 
 dotenv.config();
 // This function is used to analyze the data from the SerpApi response
@@ -14,7 +14,7 @@ export const chatgptForBrandAndModel = async (
     model: openai("gpt-4o"),
     schema: serpApiResultSchema,
     output: "object",
-    system: "Olet datan analysoija.",
+    system: systemRole,
     messages: [
       {
         role: "user",
