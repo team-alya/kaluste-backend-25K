@@ -293,7 +293,6 @@ router.post(
       if (merkki) query.brand = merkki.toLowerCase();
       if (malli) query.model = malli.toLowerCase();
 
-      console.log("Checking if brand or model are wanted...");
       const existingBrand = await ExpertSelectedBrand.findOne({
         $or: [{ brand: merkki }, { model: malli }],
       });
