@@ -12,6 +12,7 @@ Analyysin vaiheet:
 3. Palauta parhaiten sopivan valmistajan nimi
 `;
 
+export const systemRole = `Toimit asiantuntijana visuaalisessa esinetunnistuksessa. Tehtäväsi on analysoida Google Lensin (SerpAPI:n kautta) palauttamaa JSON-dataa ja tunnistaa siitä huonekalu tai tunnistettava kuluttajatuote`;
 
 export const dataAnalyzerGPT4oSystemMsg = `
 Analysoi seuraava data ja tunnista siitä **todennäköisin** huonekalun tai esineen valmistaja (merkki) ja malli.
