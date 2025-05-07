@@ -307,6 +307,7 @@ flowchart TD
 
     subgraph GPT-4
         C1[Check image quality]
+        C6[Analyze SerpApi results for brand and model]
         C2[Generate additional furniture details]
 
         C4[Price Analysis]
@@ -314,7 +315,7 @@ flowchart TD
     end
 
     subgraph SerpApi
-        D1[Search brand and model]
+        D1[Search brand and model with Google Lens Api]
     end
 
     subgraph Database
@@ -326,7 +327,8 @@ flowchart TD
     B1 --> C1
     C1 --> B2
     B2 --> D1
-    D1 --> C2
+    D1 --> C6
+    C6 --> C2
     C4 --> B4
     B4 --> B3
     C2 --> C4
@@ -345,6 +347,7 @@ flowchart TD
     style C2 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
     style C4 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
     style C5 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
+    style C6 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
 
     style F2 fill:#F1948A,stroke:#E74C3C,stroke-width:2px, color:#333
 
