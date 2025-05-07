@@ -18,7 +18,6 @@ router.post("/", imageUploadHandler(), async (req: Request, res: Response) => {
 
     const optimizedImage = await resizeImage(req.file.buffer);
 
-    console.log("Started price analysis at: " + new Date().toLocaleString())
     const priceEstimate = await analyzePrice(furnitureDetails, serpApiResult, optimizedImage.buffer);
     const startTime = Date.now();
     console.log(`Price analysis finished in: ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)

@@ -39,7 +39,6 @@ router.post(
       if (savedImageId) {
         try {
           await tempImage.findByIdAndDelete(savedImageId);
-          console.log("Image deleted successfully.");
           console.log(
             `Analysis finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
           );

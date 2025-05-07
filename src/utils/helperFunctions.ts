@@ -16,7 +16,6 @@ import { BaseResponse } from "serpapi";
 // This function handles the image resizing and returns the optimized image
 export const handleImage = async (file: Express.Multer.File) => {
   try {
-    console.log("Resizing image...");
     const optimizedImage = await resizeImage(file.buffer);
     return optimizedImage;
   } catch (error) {
@@ -31,14 +30,12 @@ export const handleSaveTempImage = async (
   file: Express.Multer.File
 ) => {
   try {
-    console.log("Trying to save image to DB...");
     const imageForEvaluation = new tempImage({
       contentType: file.mimetype,
       image: optimizedImage.buffer,
     });
     const savedImage = await imageForEvaluation.save();
     const savedImageId = savedImage.id;
-    console.log("Saved image successfully, id: " + savedImageId);
     return savedImageId;
   } catch (error) {
     console.error("Error saving image to DB: ", error);
@@ -49,7 +46,6 @@ export const handleSaveTempImage = async (
 // This function handles the analysis of the image using SerpAPI and returns the response
 export const handleSerpApiAnalysis = async (tempImageId: string) => {
   try {
-    console.log("Passing the ID to SerpAPI...");
     const serpApiResponse = await serpapi(tempImageId);
     return serpApiResponse;
   } catch (error) {
@@ -64,7 +60,6 @@ export const handleChatGptAnalysis = async (
   optimizedImage: OptimizedImage
 ) => {
   try {
-    console.log("Passing the SerpAPI response to ChatGPT...");
     const [chatgptResponse, restGptAnalysis] = await Promise.all([
       chatgptForBrandAndModel(serpApiResponse),
       chatgptRestOfAnalysis(optimizedImage.buffer),
@@ -83,7 +78,6 @@ export const handlePriceAnalysis = async (
   imageBuffer: Buffer
 ): Promise<PriceEstimation> => {
   try {
-    console.log("Analyzing price...");
     const priceEstimation = await analyzePrice(
       restGptAnalysis,
       chatgptResponse,

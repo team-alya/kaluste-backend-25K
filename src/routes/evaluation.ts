@@ -99,9 +99,8 @@ router.post(
       });
 
       const savedEvaluation = await newEvaluation.save();
-      console.log("Evaluation saved successfully, returning saved evaluation");
       console.log(
-        `Process finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
+        `Evaluation save finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
       );
       return res.json(savedEvaluation);
     } catch (error) {
@@ -354,17 +353,14 @@ router.delete(
   requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("Trying to find evaluation by id...");
       const evaluation = await Evaluation.findById(req.params.id);
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
-      console.log("Evaluation found, deleting image and evaluation...");
       await Image.findByIdAndDelete(evaluation.imageId);
 
       await Evaluation.findByIdAndDelete(req.params.id);
 
-      console.log("Evaluation and related image deleted successfully");
       return res
         .status(200)
         .json({ message: "Evaluation and related image deleted successfully" });
@@ -391,7 +387,6 @@ router.put(
       }
 
       try {
-        console.log("req.body: ", req.body);
         const newEvaluation = {
           brand: req.body.merkki || evaluation?.evaluation?.brand,
           model: req.body.malli || evaluation?.evaluation?.model,
@@ -439,7 +434,6 @@ router.put(
           },
           { new: true }
         );
-        console.log("Update successful, returning updated evaluation");
         console.log(
           `Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
         );
@@ -481,7 +475,6 @@ router.patch(
 
         evaluation.status = status;
         await evaluation.save();
-        console.log("Evaluation status updated successfully.");
         return res
           .status(200)
           .json({ message: "Status updated successfully!", evaluation });
