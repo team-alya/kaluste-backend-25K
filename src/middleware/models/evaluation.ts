@@ -73,12 +73,12 @@ const evaluationSchema = new Schema({
         },
     },
     priceEstimation: {
-        suositus_hinta: {
+        recommended_price: {
             type: Number,
             required: false,
             default: 0
         },
-        perustelu: {
+        price_reason: {
             type: [String],
             required: false,
             default: "Ei tiedossa"

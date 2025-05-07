@@ -105,7 +105,7 @@ Below is a list of available API endpoints in this project, grouped by functiona
 
 | HTTP | Route      | Description                                                                                                                                                  |
 | ------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PATCH  | api/evaluation/:id/status | Updates only the status field of an evaluation. Accepted statuses: "not reviewed", "reviewed", "archived" |
+| PATCH  | /api/evaluation/:id/status | Updates only the status field of an evaluation. Accepted statuses: "not reviewed", "reviewed", "archived" |
 
 
 ### CRUD operations for list of brands or models selected by an expert in the database
@@ -283,10 +283,9 @@ The Vision Pipeline process works as follows:
 2. Image is sended to AI to check its quality
 3. If image is ok, it is processed and sent to SerpApi for brand and model search
 4. Next step is AI GPT-4o vision model, which generating all others details
-5. If brand and model not found in step nr. 3, make attempt with GPT-4o which has been specifically instructed to provide its best guess for at least the brand
-6. Proceed to Price Analysis with all furniture details and image with GPT-4o
-7. Present results in editable form exept price for user verification
-8. Before saving to DB checking if brand or model is needed in stock, if no need AI will do analysis if it is valuable
+5. Proceed to Price Analysis with all furniture details and image with GPT-4o
+6. Present results in editable form exept price for user verification
+7. Before saving to DB checking if brand or model is needed in stock, if no need AI will do analysis if it is valuable
 
 ## Vision Pipeline Process
 
@@ -299,17 +298,17 @@ flowchart TD
     end
 
     subgraph Frontend
-        B1[Send image to GPT-4 for quality check]
-        B2[If OK, send image to SerpApi for brand/model search]
-        B3[If brand/model not found, fallback to GPT-4 for best guess]
+        B1[Send image to backend for quality check]
+        B2[If OK, send image to backend for brand/model search]
+        B3[Check if brand/model needed in stock in DB]
         B4[Present editable results to user]
-        B5[Check if brand/model needed in stock]
+
     end
 
     subgraph GPT-4
         C1[Check image quality]
         C2[Generate additional furniture details]
-        C3[Guess brand/model if needed]
+
         C4[Price Analysis]
         C5[Analyze if non-needed item is still valuable]
     end
@@ -319,43 +318,118 @@ flowchart TD
     end
 
     subgraph Database
-        F1[Save item if needed or valuable]
+        
+        F2[Save evaluation]
     end
 
     A1 --> B1
     B1 --> C1
     C1 --> B2
     B2 --> D1
-    D1 --> B3
-    B3 --> C3
-    B2 --> C2
+    D1 --> C2
     C4 --> B4
+    B4 --> B3
     C2 --> C4
-    C3 --> C2
-    B4 --> B5
-    B5 -->|If needed| F1
-    B5 -->|If not needed| C5
-    C5 --> F1
+    B3 -->|If no needed| C5
+    B3 -->|If needed| F2
+    C5 -->|If still valuable| F2
+
 
     style A1 fill:#FFDDC1,stroke:#FF5733,stroke-width:2px, color:#333
 
     style B1 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
     style B2 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
-    style B3 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
     style B4 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
-    style B5 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
-
+    style B3 fill:#D1E8E2,stroke:#1ABC9C,stroke-width:2px, color:#333
     style C1 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
     style C2 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
-    style C3 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
     style C4 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
     style C5 fill:#F1C40F,stroke:#F39C12,stroke-width:2px, color:#333
 
-    style F1 fill:#F1948A,stroke:#E74C3C,stroke-width:2px, color:#333
+    style F2 fill:#F1948A,stroke:#E74C3C,stroke-width:2px, color:#333
 
     style D1 fill:#28B463,stroke:#1F8A44,stroke-width:2px, color:#fff
     
 ```
+
+## Database Structure (MongoDB)
+
+### 1. `Evaluation`
+
+| Field                         | Type               | Required |
+|------------------------------|--------------------|----------|
+| `timeStamp`                  | `Date`             | No       |
+| `imageId`                    | `ObjectId`         | Yes      |
+| `evaluation.brand`           | `String`           | No       |
+| `evaluation.model`           | `String`           | No       |
+| `evaluation.color`           | `String`           | No       |
+| `evaluation.dimensions`      | `Object`           | No       |
+| `evaluation.materials`       | `[String]`         | No       |
+| `evaluation.condition`       | `String (enum)`    | No       |
+| `priceEstimation.suositus_hinta` | `Number`      | No       |
+| `priceEstimation.perustelu`  | `[String]`         | No       |
+| `user`                       | `Object`           | Yes      |
+| `status`                     | `String (enum)`    | No       |
+| `description`                | `String`           | No       |
+
+---
+
+### 2. `ExpertSelectedBrand`
+
+| Field    | Type     | Required |
+|----------|----------|----------|
+| `brand`  | `String` | No       |
+| `model`  | `String` | No       |
+
+---
+
+### 3. `Image`
+
+Saved image data after evaluation saving
+
+| Field        | Type      | Required |
+|--------------|-----------|----------|
+| `contentType`| `String`  | Yes      |
+| `image`      | `Buffer`  | Yes      |
+| `timeStamp`  | `Date`    | No       |
+
+---
+
+### 4. `tempImage`
+
+Temporary image storage, used before full processing
+
+| Field        | Type     | Required |
+|--------------|----------|----------|
+| `contentType`| `String` | Yes      |
+| `image`      | `Buffer` | Yes      |
+
+---
+
+### 5. `Location`
+
+| Field                      | Type     | Required |
+|---------------------------|----------|----------|
+| `name`                    | `String` | Yes      |
+| `address`                 | `String` | Yes      |
+| `type`                    | `String` | No       |
+| `gps_coordinates.latitude` | `Number`| Yes      |
+| `gps_coordinates.longitude`| `Number`| Yes      |
+| `createdAt`               | `Date`   | No       |
+
+---
+
+### 6. `User`
+
+| Field      | Type      | Required |
+|------------|-----------|----------|
+| `username` | `String`  | Yes      |
+| `password` | `String`  | Yes      |
+| `email`    | `String`  | Yes      |
+| `firstname`| `String`  | Yes      |
+| `lastname` | `String`  | Yes      |
+| `role`     | `String`  | No       |
+
 
 ## To Developer
 

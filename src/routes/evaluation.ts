@@ -11,7 +11,7 @@ import fs from "fs";
 import { verifyToken } from "@/middleware/auth";
 import { requiredRole } from "@/middleware/roleChecker";
 import multer from "multer";
-import { analyzeStockRelevance } from "@/services/ai/priceAnalyzer/perplexity";
+import { analyzeStockRelevance } from "@/services/ai/stockAnalyzer/stockRelevanceAnalyzer";
 const upload = multer();
 const router = express.Router();
 
@@ -19,13 +19,10 @@ const router = express.Router();
 router.get(
   "/all",
   verifyToken,
-  requiredRole("expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   async (_req, res: Response, next: NextFunction) => {
     try {
-      console.log("Searching for evaluations...")
       const evaluations = await Evaluation.find();
-
-      console.log("Evaluations found, sending results...");
       return res.json(evaluations);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -39,17 +36,15 @@ router.get(
 router.get(
   "/:id",
   verifyToken,
-  requiredRole("expert", "admin"),
+  requiredRole("user", "expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("GET evaluation with id...")
       const evaluation = await Evaluation.findById(req.params.id);
 
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
 
-      console.log("Evaluation found, returning found evaluation")
       return res.json(evaluation);
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -84,7 +79,6 @@ router.post(
       });
 
       const savedImage = await imageForEvaluation.save();
-      console.log("saved image id: " + savedImage.id);
 
       const newEvaluation = new Evaluation({
         imageId: savedImage.id,
@@ -100,13 +94,17 @@ router.post(
           materials: req.body.materiaalit || [],
           condition: req.body.kunto || "Ei tiedossa",
         },
-        priceEstimation: req.body.priceEstimation,
+        priceEstimation: JSON.parse(req.body.priceEstimation) || {
+          recommended_price: 0,
+          price_reason: ["Ei tiedossa"],
+        },
         user: req.user?.username,
       });
 
       const savedEvaluation = await newEvaluation.save();
-      console.log("Evaluation saved successfully, returning saved evaluation")
-      console.log(`Process finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
+      console.log(
+        `Evaluation save finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`
+      );
       return res.json(savedEvaluation);
     } catch (error) {
       console.error("Error saving evaluation", error);
@@ -143,14 +141,14 @@ router.post(
           materiaalit: ["nahka"],
           kunto: "Huono",
           priceEstimation: {
-            suositus_hinta: 150,
-            perustelu: [
+            recommended_price: 150,
+            price_reason: [
               "Huonokuntoinen nahkasohva",
               "Suuri koko voi vaikeuttaa myyntiä",
-              "Brändi tunnettu laadusta"
-            ]
+              "Brändi tunnettu laadusta",
+            ],
           },
-          status: "reviewed"
+          status: "reviewed",
         },
         {
           merkki: "Pohjanmaan Fantasy",
@@ -160,14 +158,14 @@ router.post(
           materiaalit: ["kangas", "puu"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 400,
-            perustelu: [
+            recommended_price: 400,
+            price_reason: [
               "Hyväkuntoinen designsohva",
               "Neutraali väri nostaa arvoa",
-              "Materiaalit kestäviä"
-            ]
+              "Materiaalit kestäviä",
+            ],
           },
-          status: "not reviewed"
+          status: "not reviewed",
         },
         {
           merkki: "Asko",
@@ -177,14 +175,14 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Kohtalainen",
           priceEstimation: {
-            suositus_hinta: 120,
-            perustelu: [
+            recommended_price: 120,
+            price_reason: [
               "Kohtalaisessa kunnossa oleva tuoli",
               "Tunnettu valmistaja",
-              "Kompakti koko"
-            ]
+              "Kompakti koko",
+            ],
           },
-          status: "not reviewed"
+          status: "not reviewed",
         },
         {
           merkki: "Ei tiedossa",
@@ -194,14 +192,14 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 200,
-            perustelu: [
+            recommended_price: 200,
+            price_reason: [
               "Tyylihuonekalu hyvässä kunnossa",
               "Klassinen design",
-              "Sopii moneen sisustukseen"
-            ]
+              "Sopii moneen sisustukseen",
+            ],
           },
-          status: "archived"
+          status: "archived",
         },
         {
           merkki: "Laitalan Kaluste",
@@ -211,15 +209,15 @@ router.post(
           materiaalit: ["puu", "kangas"],
           kunto: "Hyvä",
           priceEstimation: {
-            suositus_hinta: 250,
-            perustelu: [
+            recommended_price: 250,
+            price_reason: [
               "Koristeellinen design-tuoli",
               "Erinomainen kunto",
-              "Laadukas valmistaja"
-            ]
+              "Laadukas valmistaja",
+            ],
           },
-          status: "not reviewed"
-        }
+          status: "not reviewed",
+        },
       ];
 
       const savedEvaluations = [];
@@ -260,85 +258,95 @@ router.post(
         savedEvaluations.push(savedEvaluation);
       }
 
-    return res.status(201).json({
-      message: "Database reset complete with new evaluations",
-      evaluations: savedEvaluations,
-    });
-
-  } catch (error) {
-    console.error("Error resetting database:", error);
-    return next(error);
+      return res.status(201).json({
+        message: "Database reset complete with new evaluations",
+        evaluations: savedEvaluations,
+      });
+    } catch (error) {
+      console.error("Error resetting database:", error);
+      return next(error);
+    }
   }
-});
+);
 
 // Check if brand or model is wanted
 
-router.post("/check", verifyToken, requiredRole("user", "expert", "admin"), imageUploadHandler(), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Ota suomenkieliset muuttujat req.body:stä
-    const { merkki, malli, vari, mitat, materiaalit, kunto } = req.body;
+router.post(
+  "/check",
+  verifyToken,
+  requiredRole("user", "expert", "admin"),
+  imageUploadHandler(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Ota suomenkieliset muuttujat req.body:stä
+      const { merkki, malli, vari, mitat, materiaalit, kunto } = req.body;
 
-    if (!req.file) {
-      throw new CustomError("Image not given", 400);
-    }
+      if (!req.file) {
+        throw new CustomError("Image not given", 400);
+      }
 
-    const optimizedImage = await resizeImage(req.file.buffer);
+      const optimizedImage = await resizeImage(req.file.buffer);
 
-    if (!merkki || !malli) {
-      throw new CustomError("Merkki ja malli ovat pakollisia", 400);
-    }
+      if (!merkki || !malli) {
+        throw new CustomError("Merkki ja malli ovat pakollisia", 400);
+      }
 
-    const query: any = {};
-    if (merkki) query.brand = merkki.toLowerCase();
-    if (malli) query.model = malli.toLowerCase();
+      const query: any = {};
+      if (merkki) query.brand = merkki.toLowerCase();
+      if (malli) query.model = malli.toLowerCase();
 
-    console.log("Checking if brand or model are wanted...");
-    const existingBrand = await ExpertSelectedBrand.findOne({
-      $or: [{ brand: merkki }, { model: malli }],
-    });
-
-    if (existingBrand) {
-      return res.status(200).json({
-        message: "Brändi ja/tai malli tarvitaan varastoon.",
-        required: true,
-        reason: "brand_in_stock",
+      const existingBrand = await ExpertSelectedBrand.findOne({
+        $or: [{ brand: merkki }, { model: malli }],
       });
-    }
 
-    if (expensiveBrands.includes(merkki)) {
+      if (existingBrand) {
+        return res.status(200).json({
+          message: "Brändi ja/tai malli tarvitaan varastoon.",
+          required: true,
+          reason: "brand_in_stock",
+        });
+      }
+
+      if (expensiveBrands.includes(merkki)) {
+        return res.status(200).json({
+          message:
+            "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
+          required: true,
+          reason: "expensive_brand",
+        });
+      }
+
+      // AI vastaus
+      const serpApiResult = {
+        merkki,
+        malli,
+      };
+
+      const furnitureDetails = {
+        vari,
+        mitat,
+        materiaalit,
+        kunto,
+      };
+
+      // AI analyysi
+      const aiExplanation = await analyzeStockRelevance(
+        furnitureDetails,
+        serpApiResult,
+        optimizedImage.buffer
+      );
+
       return res.status(200).json({
-        message: "Tämän huonekalun brändi on arvokas. Suosittellaan lisämään varastoon.",
-        required: true,
-        reason: "expensive_brand",
+        message: aiExplanation,
+        required: false,
+        reason: "not_required_in_stock",
       });
+    } catch (error) {
+      console.error("Error checking model", error);
+      return next(error);
     }
-
-    // AI vastaus
-    const serpApiResult = {
-      merkki,
-      malli,
-    };
-
-    const furnitureDetails = {
-      vari,
-      mitat,
-      materiaalit,
-      kunto,
-    };
-
-    // AI analyysi
-    const aiExplanation = await analyzeStockRelevance(furnitureDetails, serpApiResult, optimizedImage.buffer);
-
-    return res.status(200).json({
-      message: aiExplanation,
-      required: false,
-      reason: "not_required_in_stock",
-    });
-  } catch (error) {
-    console.error("Error checking model", error);
-    return next(error);
   }
-});
+);
 
 // Delete evaluation
 
@@ -348,17 +356,14 @@ router.delete(
   requiredRole("expert", "admin"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id);
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
-      console.log("Evaluation found, deleting image and evaluation...")
       await Image.findByIdAndDelete(evaluation.imageId);
 
       await Evaluation.findByIdAndDelete(req.params.id);
 
-      console.log("Evaluation and related image deleted successfully")
       return res
         .status(200)
         .json({ message: "Evaluation and related image deleted successfully" });
@@ -379,41 +384,42 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     const startTime = Date.now();
     try {
-      console.log("Trying to find evaluation by id...")
-      const evaluation = await Evaluation.findById(req.params.id)
+      const evaluation = await Evaluation.findById(req.params.id);
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
 
-      console.log("Evaluation found, starting update...")
       try {
-        console.log("req.body: ", req.body);
         const newEvaluation = {
           brand: req.body.merkki || evaluation?.evaluation?.brand,
           model: req.body.malli || evaluation?.evaluation?.model,
           color: req.body.vari || evaluation?.evaluation?.color,
           dimensions: {
-            length: req.body.mitat?.pituus || evaluation?.evaluation?.dimensions?.length,
-            width: req.body.mitat?.leveys || evaluation?.evaluation?.dimensions?.width,
-            height: req.body.mitat?.korkeus || evaluation?.evaluation?.dimensions?.height,
+            length:
+              req.body.mitat?.pituus ||
+              evaluation?.evaluation?.dimensions?.length,
+            width:
+              req.body.mitat?.leveys ||
+              evaluation?.evaluation?.dimensions?.width,
+            height:
+              req.body.mitat?.korkeus ||
+              evaluation?.evaluation?.dimensions?.height,
           },
-          materials:
-            req.body.materiaalit || evaluation?.evaluation?.materials,
+          materials: req.body.materiaalit || evaluation?.evaluation?.materials,
           condition: req.body.kunto || evaluation?.evaluation?.condition,
-          priceEstimation: {
-            suositus_hinta:
-              req.body.suositus_hinta ??
-              evaluation?.priceEstimation?.suositus_hinta,
-            perustelu: req.body.perustelu
-              ? Array.isArray(req.body.perustelu)
-                ? req.body.perustelu
-                : [req.body.perustelu]
-              : evaluation?.priceEstimation?.perustelu,
-          },
+        }
+
+        const newPriceEstimation = {
+          recommended_price: req.body.priceEstimation?.recommended_price ?? evaluation?.priceEstimation?.recommended_price,
+          price_reason: req.body.priceEstimation?.price_reason
+            ? Array.isArray(req.body.priceEstimation.price_reason)
+              ? req.body.priceEstimation.price_reason
+              : [req.body.priceEstimation.price_reason]
+            : evaluation?.priceEstimation?.price_reason,
         }
 
         const newStatus = req.body.status || evaluation?.status;
-        const validStatusList = ["not reviewed", "reviewed", "archived"]
+        const validStatusList = ["not reviewed", "reviewed", "archived"];
 
         if (newStatus && !validStatusList.includes(newStatus)) {
           throw new CustomError("New status is not valid.", 400);
@@ -421,39 +427,47 @@ router.put(
 
         const newDescription = req.body.description || evaluation?.description;
 
-        const updatedEvaluation = await Evaluation.findByIdAndUpdate(req.params.id, { evaluation: newEvaluation, status: newStatus, description: newDescription }, { new: true });
-        console.log("Update successful, returning updated evaluation")
+        const updatedEvaluation = await Evaluation.findByIdAndUpdate(
+          req.params.id, 
+          { 
+            evaluation: newEvaluation, 
+            priceEstimation: newPriceEstimation,
+            status: newStatus, 
+            description: newDescription 
+          }, 
+          { new: true }
+        );
+        
         console.log(`Update finished in ${((Date.now() - startTime) / 1000).toFixed(2)} seconds`)
+
         return res.json(updatedEvaluation);
       } catch (error) {
-        return next(error)
+        return next(error);
       }
     } catch (error) {
       console.error("Error updating evaluation:", error);
       return next(error);
     }
-  });
-
+  }
+);
 
 // Update evaluation status(not reviewed, reviewed, archived)
 
-router.patch("/:id/status",
+router.patch(
+  "/:id/status",
   verifyToken,
   requiredRole("expert", "admin"),
   upload.none(),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log("Trying to find evaluation by id...")
       const evaluation = await Evaluation.findById(req.params.id);
       if (!evaluation) {
         throw new CustomError("Evaluation not found", 404);
       }
 
-      console.log("Evaluation found, updating status...")
       try {
-        console.log("Checking if given status is valid...")
-        const validStatusList = ["not reviewed", "reviewed", "archived"]
-        const { status } = req.body
+        const validStatusList = ["not reviewed", "reviewed", "archived"];
+        const { status } = req.body;
         if (!validStatusList.includes(status)) {
           throw new CustomError("Given status is not valid", 400);
         }
@@ -462,20 +476,19 @@ router.patch("/:id/status",
           throw new CustomError("Evaluation already has this status", 400);
         }
 
-        console.log("Status validated, updating status to: " + req.body.status)
-        evaluation.status = status
+        evaluation.status = status;
         await evaluation.save();
-        console.log("Evaluation status updated successfully.")
-        return res.status(200).json({ message: "Status updated successfully!", evaluation })
+        return res
+          .status(200)
+          .json({ message: "Status updated successfully!", evaluation });
       } catch (error) {
         return next(error);
       }
     } catch (error) {
-      console.error("Status update unsuccessful: " + error)
+      console.error("Status update unsuccessful: " + error);
       next(error);
     }
   }
-
 );
 
 export default router;
